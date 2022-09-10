@@ -57,7 +57,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// Pass either a csv file [path] or a [rowStream], which you may process 
   /// beforehand in some way.
   /// 
-  /// [fieldDelimiter], [textEndDelimiter], [textEndDelimiter] & [eol] will be 
+  /// [fieldDelimiter], [textEndDelimiter], [textEndDelimiter] & [eolToken] will be 
   /// passed to the employed [CsvToListConverter].
   /// 
   /// If [containsHeader] is set to true (default), the first row of the 
@@ -68,7 +68,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// added to the data frame. Likewise, only [maxRows] rows of csv data, excluding
   /// the eventually included header row, will be read in if specified.
   /// 
-  /// [parseNumeric] leads to double and int values automatically being 
+  /// [convertNumeric] leads to double and int values automatically being 
   /// respectively converted. [convertDates] leads to attempting a DateFormat conversion
   /// for each column.
   static Future<DataFrame> fromCsv(
@@ -79,12 +79,12 @@ class DataFrame extends ExtendedListBase<RecordRow> {
         String fieldDelimiter = defaultFieldDelimiter,
         String? textDelimiter = defaultTextDelimiter,
         String? textEndDelimiter,
-        String eol = defaultEol,
+        String eolToken = defaultEol,
         bool containsHeader = true,
         List<String>? columnNames,
         List<String>? skipColumns,
         int? maxRows,
-        bool parseNumeric = true,
+        bool convertNumeric = true,
         bool convertDates = true,
         String? datePattern
       }) async {
@@ -117,8 +117,8 @@ class DataFrame extends ExtendedListBase<RecordRow> {
               fieldDelimiter: fieldDelimiter,
               textDelimiter: textDelimiter,
               textEndDelimiter: textEndDelimiter,
-              eol: eol,
-              shouldParseNumbers: parseNumeric,
+              eol: eolToken,
+              shouldParseNumbers: convertNumeric,
               allowInvalid: false
             )
         );
@@ -248,11 +248,11 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// Enables (typed) column access.
   /// 
   /// If [start] and/or [end] are specified the column will be sliced, 
-  /// after which [includeElement] may determine which elements are to be included.
-  List<T> call<T>(String colName, {int start = 0, int? end, bool Function(T)? includeElement}){
+  /// after which [includeRecord] may determine which elements are to be included.
+  List<T> call<T>(String colName, {int start = 0, int? end, bool Function(T)? includeRecord}){
     Iterable<T> column = sublist(start, end).map((row) => row._record<T>(columnIndex(colName)));
-    if (includeElement != null){
-      column = column.where(includeElement);
+    if (includeRecord != null){
+      column = column.where(includeRecord);
     }
     return column.toList();
   }

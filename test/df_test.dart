@@ -42,7 +42,7 @@ void main() {
 
   group('fromCsv', () {
     test('basic parsing', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), convertDates: false, eol: '\n');
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), convertDates: false, eolToken: '\n');
           expect(df.columnNames, ['symbol','date','price','n']);
       expect(df.length, 2);
       expect(df('price')._types(), {double});
@@ -50,35 +50,35 @@ void main() {
     });
 
     test('automatic date conversion', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('iso_date.csv'), eol: '\n');
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('iso_date.csv'), eolToken: '\n');
       expect(df('date')._types(), {DateTime});
       expect(df('date').map((el) => el.toString()).toList(), ['2020-04-12 12:16:54.220', '2020-04-12 12:16:54.220']);
     });
 
     test('date conversion with specified format', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), eol: '\n', datePattern: 'MMM d yyyy');
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), eolToken: '\n', datePattern: 'MMM d yyyy');
 
       expect(df('date')._types(), {DateTime});
     });
 
     test('newline at the end of file', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('terminating_newline.csv'), eol: '\n');
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('terminating_newline.csv'), eolToken: '\n');
       expect(df.length, 1);
     });
 
     test('max rows', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('stocks.csv'), eol: '\n', maxRows: 20);
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('stocks.csv'), eolToken: '\n', maxRows: 20);
       expect(df.length, 20);
     });
 
     test('no header', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('no_header.csv'), eol: '\n', containsHeader: false, columnNames: ['symbol','date','price','n']);
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('no_header.csv'), eolToken: '\n', containsHeader: false, columnNames: ['symbol','date','price','n']);
       expect(df.length, 2);
       expect(df.columnNames, ['symbol','date','price','n']);
     });
 
     test('skip columns', () async {
-      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), eol: '\n', skipColumns: ['price']);
+      DataFrame df = await DataFrame.fromCsv(path: _csvPath('with_date.csv'), eolToken: '\n', skipColumns: ['price']);
       expect(df.length, 2);
       expect(df.columnNames, ['symbol','date','n']);
       expect(df, [['MSFT', 'Jan 1 2000', 1], ['MSFT', 'Feb 1 2000', 2]]);
@@ -119,7 +119,7 @@ void main() {
   });
 
   test('slicing', () async {
-    DataFrame df = (await DataFrame.fromCsv(path: _csvPath('stocks.csv'), eol: '\n'))..slice(0, 30);
+    DataFrame df = (await DataFrame.fromCsv(path: _csvPath('stocks.csv'), eolToken: '\n'))..slice(0, 30);
     expect(df.length, 30);
 
     final sliced = df.sliced(5, 25);
@@ -172,7 +172,7 @@ void main() {
 
     // column access
     expect(df('col1'), [1, 1, null]);
-    expect(df('col1', includeElement: (element) => element != null), [1, 1]);
+    expect(df('col1', includeRecord: (element) => element != null), [1, 1]);
     expect(() => df('nonExistent'), throwsArgumentError);
 
     // typing
