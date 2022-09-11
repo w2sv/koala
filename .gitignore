@@ -23,7 +23,7 @@
 docs/_build/
 
 # Flutter/Dart/Pub related
-**/doc/api/
+/doc/
 .dart_tool/
 .flutter-plugins
 .packages
