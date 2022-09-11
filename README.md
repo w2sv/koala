@@ -5,7 +5,7 @@
 [![GitHub](https://img.shields.io/github/license/w2sv/koala?style=plastic)](https://github.com/w2sv/koala/blob/master/LICENSE)
 
 A poor man's version of a pandas DataFrame.\
-Read, collect, access & manipulate related data.
+Collect, access & manipulate related data.
 
 ## Examples
 

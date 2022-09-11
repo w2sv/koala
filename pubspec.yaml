@@ -1,5 +1,5 @@
 name: koala
-description: A poor man's version of a pandas Dataframe.
+description: A poor man's version of a pandas Dataframe. Collect, access & manipulate related data.
 homepage: https://github.com/w2sv/koala
 version: 0.0.1
 
