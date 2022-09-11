@@ -7,14 +7,6 @@
 A poor man's version of a pandas DataFrame.\
 Read, collect, access & manipulate related data.
 
-## Install
-
-```shell
-flutter pub add koala
-# or
-dart pub add koala
-```
-
 ## Examples
 
 Create a DataFrame from a csv file, preexisting column names and data, map 
