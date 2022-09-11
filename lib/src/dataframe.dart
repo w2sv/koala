@@ -158,81 +158,9 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     return df;
   }
 
-  // ************* object overrides ******************
-
-  /// Returns hashCode accounting for both the [_data] and [_columnNames]
-  @override
-  int get hashCode =>
-      l.hashCode + _columnNames.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) || (
-          other is DataFrame &&
-          this.l == other.l &&
-          this._columnNames == other._columnNames
-      );
-
-  @override
-  String toString(){
-    final indexColumnLength = length.toString().length;
-    final indexColumnDelimiter = ' | ';
-    final consecutiveElementDelimiter = ' ';
-
-    final List<int> columnWidths = columnIterable()
-        .mapIndexed(
-            (index, col) => (col + [columnNames[index]])
-                .map((el) => el.toString().length)
-                .max
-    )
-        .toList();
-
-    return ' '.padLeft(indexColumnLength +
-        indexColumnDelimiter.length) +
-        columnNames
-            .mapIndexed((i, el) => el.padRight(columnWidths[i]))
-            .join(consecutiveElementDelimiter) +
-        '\n' +
-        IterableZip(
-        [
-          Iterable.generate(length).map((e) => e.toString().padLeft(indexColumnLength)),
-          map(
-                  (row) => row.mapIndexed(
-                          (index, element) => element
-                              .toString()
-                              .padRight(columnWidths[index])
-                  )
-                      .join(consecutiveElementDelimiter)
-          )
-        ]
-    )
-        .map((e) => e.join(indexColumnDelimiter))
-        .join('\n');
-  }
-
-  // *********** generic operations ****************
-
-  /// Returns a deep copy of the dataframe
-  DataFrame copy() => DataFrame._copied(_columnNames, this);
-
-  DataFrame._copied(PositionTrackingList<String> columns, List<RecordRow> data):
-        this._columnNames = columns.copy(),
-        super(copy2D(data));
-  
-  /// Returns a new, row-sliced dataframe
-  DataFrame sliced(int start, [int? end]) =>
-      DataFrame._copied(
-          _columnNames,
-          sublist(start, end)
-      );
-
-  // ************* attribute access *****************
+  // ************** column names ***************
 
   List<String> get columnNames => _columnNames;
-
-  /// Returns an iterable over the column data
-  Iterable<RecordCol> columnIterable() =>
-      _columnNames.map((e) => this(e));
 
   int get nColumns => _columnNames.length;
 
@@ -245,37 +173,29 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     }
   }
 
+  // ************* data access *****************
+
   /// Enables (typed) column access.
   /// 
   /// If [start] and/or [end] are specified the column will be sliced, 
   /// after which [includeRecord] may determine which elements are to be included.
   List<T> call<T>(String colName, {int start = 0, int? end, bool Function(T)? includeRecord}){
-    Iterable<T> column = sublist(start, end).map((row) => row._record<T>(columnIndex(colName)));
+    Iterable<T> column = sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
     if (includeRecord != null){
       column = column.where(includeRecord);
     }
     return column.toList();
   }
 
-  /// Returns a list of {columnName: value} representations for each row.
-  List<RecordRowMap> rowMaps() =>
-      [
-        for (final row in this)
-          Map.fromIterables(_columnNames, row)
-      ];
+  /// Returns an iterable over the column data
+  Iterable<RecordCol> columnIterable() =>
+      _columnNames.map((e) => this(e));
   
-  /// Returns a {columnName: columnData} representation
-  Map<String, RecordCol> columnMap() =>
-      Map.fromIterable(
-        _columnNames,
-        value: (name) => this(name),
-      );
-  
-  /// Grab a typed record sitting at dataframe[rowIndex][colName]
+  /// Grab a (typed) record sitting at dataframe[rowIndex][colName]
   T record<T>(int rowIndex, String colName) =>
-    this[rowIndex]._record<T>(columnIndex(colName));
+    this[rowIndex][columnIndex(colName)] as T;
 
-  // **************** mutation ******************
+  // **************** manipulation ******************
   
   /// Add a new column to the end of the dataframe. The [records] have to be of the same length
   /// as the dataframe.
@@ -318,16 +238,45 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   void addRowFromMap(RecordRowMap rowMap) =>
       add([for (final name in _columnNames) rowMap[name]]);
 
+  // ************ alternate representations *************
+
+  /// Returns a list of {columnName: value} representations for each row.
+  List<RecordRowMap> rowMaps() =>
+      [
+        for (final row in this)
+          Map.fromIterables(_columnNames, row)
+      ];
+
+  /// Returns a {columnName: columnData} representation
+  Map<String, RecordCol> columnMap() =>
+      Map.fromIterable(
+        _columnNames,
+        value: (name) => this(name),
+      );
+
+  // ************ copying *************
+
+  /// Returns a deep copy of the dataframe
+  DataFrame copy() => DataFrame._copied(_columnNames, this);
+
+  DataFrame._copied(PositionTrackingList<String> columns, List<RecordRow> data):
+        this._columnNames = columns.copy(),
+        super(copy2D(data));
+
+  // ************** slicing ****************
+
+  /// Returns a new, row-sliced dataframe
+  DataFrame sliced(int start, [int? end]) =>
+      DataFrame._copied(
+          _columnNames,
+          sublist(start, end)
+      );
+
   /// Slice dataframe in-place.
   void slice(int start, [int? end]) {
     if (start != 0) removeRange(0, start);
     if (end != null) removeRange(end, length);
   }
-
-  // ********* info **********
-
-  String structureRepresentation() =>
-    '${_columnNames.length} columns; $length rows; column names: ${_columnNames.join(', ')}';
 
   // **************** sorting ****************
 
@@ -379,15 +328,18 @@ class DataFrame extends ExtendedListBase<RecordRow> {
         required bool ascending,
         required bool nullsFirst,
         required CompareRecords? compareRecords
-      }) => (inPlace ? this : copy2D(this))..sort(
-              (a, b) => _compareRecords(
-                  a._record(columnIndex(colName)),
-                  b._record(columnIndex(colName)),
-                  ascending,
-                  nullsFirst,
-                  compareRecords
-              )
-      );
+      }){
+    final index = columnIndex(colName);
+    return (inPlace ? this : copy2D(this))..sort(
+            (a, b) => _compareRecords(
+            a[index],
+            b[index],
+            ascending,
+            nullsFirst,
+            compareRecords
+        )
+    );
+  }
 
   static int _compareRecords(Record a, Record b, bool ascending, bool nullsFirst, CompareRecords? compare) {
     // return compare result if function given
@@ -400,16 +352,70 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     if (a == null) return (nullsFirst ? -1 : 1) * bool2Coefficient[ascending]!;
     if (b == null) return (nullsFirst ? 1 : -1) * bool2Coefficient[ascending]!;
 
-    // otherwise compare as Comparables whilst taking ascending into account
+    // otherwise compare as Comparables taking ascending into account
     final comparableA = a as Comparable;
     final comparableB = b as Comparable;
 
-    if (ascending) {
-      return Comparable.compare(comparableA, comparableB);
-    }
-    else {
-      return Comparable.compare(comparableB, comparableA);
-    }
+    return ascending ?
+    Comparable.compare(comparableA, comparableB) :
+    Comparable.compare(comparableB, comparableA);
+  }
+
+  // ************* misc **************
+
+  String structureRepresentation() =>
+      '${_columnNames.length} columns; $length rows; column names: ${_columnNames.join(', ')}';
+
+  // ************* Object overrides ******************
+
+  /// Returns hashCode accounting for both the [_data] and [_columnNames]
+  @override
+  int get hashCode =>
+      l.hashCode + _columnNames.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || (
+          other is DataFrame &&
+              this.l == other.l &&
+              this._columnNames == other._columnNames
+      );
+
+  @override
+  String toString(){
+    final indexColumnLength = length.toString().length;
+    final indexColumnDelimiter = ' | ';
+    final consecutiveElementDelimiter = ' ';
+
+    final List<int> columnWidths = columnIterable()
+        .mapIndexed(
+            (index, col) => (col + [columnNames[index]])
+            .map((el) => el.toString().length)
+            .max
+    )
+        .toList();
+
+    return ' '.padLeft(indexColumnLength +
+        indexColumnDelimiter.length) +
+        columnNames
+            .mapIndexed((i, el) => el.padRight(columnWidths[i]))
+            .join(consecutiveElementDelimiter) +
+        '\n' +
+        IterableZip(
+            [
+              Iterable.generate(length).map((e) => e.toString().padLeft(indexColumnLength)),
+              map(
+                      (row) => row.mapIndexed(
+                          (index, element) => element
+                          .toString()
+                          .padRight(columnWidths[index])
+                  )
+                      .join(consecutiveElementDelimiter)
+              )
+            ]
+        )
+            .map((e) => e.join(indexColumnDelimiter))
+            .join('\n');
   }
 }
 
@@ -443,10 +449,6 @@ extension NumericalRecordColumnExtensions on List<num?>{
   
   List<double> _nullPurgedDoubles({bool treatNullsAsZeros = false}) =>
     (withoutNulls(nullReplacement: treatNullsAsZeros ? 0.0 : null)).map((e) => e!.toDouble()).toList();
-}
-
-extension on RecordRow{
-  T _record<T>(int colIndex) => this[colIndex] as T;
 }
 
 /// A function that compares two objects for sorting. It will return -1 if a
