@@ -48,7 +48,7 @@ final slicedBColumn = df('b', start: 1, end: 5);
 final filteredBColumn = df('b', includeRecord: (el) => el > 7);
 
 // grab a singular record
-final record = df<int>.record(3, 'b');
+final record = df.record<int>(3, 'b');
 ```
 
 Manipulate rows & column
