@@ -6,10 +6,11 @@ import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
 import 'package:jiffy/jiffy.dart';
 
+import 'column.dart';
 import 'list_extensions/extended_list_base.dart';
 import 'list_extensions/position_tracking_list.dart';
-import 'utils/list.dart';
 import 'utils/iterable.dart';
+import 'utils/list.dart';
 
 typedef Record = Object?;
 typedef RecordRowMap = Map<String, Record>;
@@ -44,14 +45,14 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     }
   }
 
-  /// Build a dataframe from a list of [rowMaps], e.g.
+  /// Builds a dataframe from a list of [rowMaps], e.g.
   /// [{'col1': 420, 'col2': 69},
   ///  {'col1': 666, 'col2': 1470}]
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
       : this._columnNames = PositionTrackingList(rowMaps.first.keys.toList()),
         super(rowMaps.map((e) => e.values.toList()).toList());
 
-  /// Returns an empty dataframe
+  /// Returns an empty dataframe.
   DataFrame.empty()
       : this._columnNames = PositionTrackingList([]),
         super([]);
@@ -226,28 +227,43 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     }
   }
 
+  List<int> get shape => [length, nColumns];
+
   // ************* data access *****************
 
   /// Enables (typed) column access.
   ///
   /// If [start] and/or [end] are specified the column will be sliced respectively,
   /// after which [includeRecord], if specified, may determine which elements are to be included.
-  List<T> call<T>(String colName,
+  Column<T> call<T>(String colName,
       {int start = 0, int? end, bool Function(T)? includeRecord}) {
     Iterable<T> column =
         sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
     if (includeRecord != null) {
       column = column.where(includeRecord);
     }
-    return column.toList();
+    return Column(column.toList());
   }
 
+  DataFrame fromColumns(List<String> columnNames) =>
+    DataFrame._copied(
+        PositionTrackingList(columnNames),
+        columnNames.map((e) => this(e)).transposed()
+    );
+
   /// Returns an iterable over the column data.
-  Iterable<RecordCol> columnIterable() => _columnNames.map((e) => this(e));
+  Iterable<Column> columns() => 
+      _columnNames.map((e) => this(e));
 
   /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
   T record<T>(int rowIndex, String colName) =>
       this[rowIndex][columnIndex(colName)] as T;
+
+  DataFrame rowsAt(Iterable<int> indices) =>
+      DataFrame._copied(_columnNames, indices.map((e) => this[e]).toList());
+
+  DataFrame rowsWhere(List<bool> mask) =>
+    DataFrame._copied(_columnNames, applyMask(mask).toList());
 
   // **************** manipulation ******************
 
@@ -282,7 +298,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// Transform the values corresponding to [name] as per [transformElement] in-place.
   void transformColumn(
       String name, dynamic Function(dynamic element) transformElement) {
-    this(name).asMap().forEach((i, element) {
+    this(name).forEachIndexed((i, element) {
       this[i][columnIndex(name)] = transformElement(element);
     });
   }
@@ -292,7 +308,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   void addRowFromMap(RecordRowMap rowMap) =>
       add([for (final name in _columnNames) rowMap[name]]);
 
-  // ************ alternate representations *************
+  // ************ map representations *************
 
   /// Returns a list of {columnName: value} Map-representations for each row.
   List<RecordRowMap> rowMaps() =>
@@ -339,7 +355,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   DataFrame sortedBy(String colName,
           {bool ascending = true,
           bool nullsFirst = true,
-          CompareRecords? compareRecords}) =>
+            Comparator<Record>? compareRecords}) =>
       DataFrame._copied(
         _columnNames,
         _sort(colName,
@@ -355,7 +371,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   void sortBy(String colName,
           {bool ascending = true,
           bool nullsFirst = true,
-          CompareRecords? compareRecords}) =>
+          Comparator<Record>? compareRecords}) =>
       _sort(colName,
           inPlace: true,
           ascending: ascending,
@@ -366,7 +382,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
       {required bool inPlace,
       required bool ascending,
       required bool nullsFirst,
-      required CompareRecords? compareRecords}) {
+      required Comparator<Record>? compareRecords}) {
     final index = columnIndex(colName);
     return (inPlace ? this : copy2D(this))
       ..sort((a, b) => _compareRecords(
@@ -374,7 +390,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   }
 
   static int _compareRecords(Record a, Record b, bool ascending,
-      bool nullsFirst, CompareRecords? compare) {
+      bool nullsFirst, Comparator<Record>? compare) {
     // return compare result if function given
     if (compare != null) return compare(a, b);
 
@@ -413,7 +429,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     final indexColumnDelimiter = ' | ';
     final consecutiveElementDelimiter = ' ';
 
-    final List<int> columnWidths = columnIterable()
+    final List<int> columnWidths = columns()
         .mapIndexed((index, col) =>
             (col + [columnNames[index]]).map((el) => el.toString().length).max)
         .toList();
@@ -433,40 +449,3 @@ class DataFrame extends ExtendedListBase<RecordRow> {
         ]).map((e) => e.join(indexColumnDelimiter)).join('\n');
   }
 }
-
-extension RecordColumnExtensions<T> on List<T> {
-  /// Count number of occurrences of [element] of the column [colName].
-  int count(T object) => where((element) => element == object).length;
-
-  /// Count number of occurrences of values, corresponding to the column [colName],
-  /// equaling any element contained by [pool].
-  int countElementOccurrencesOf(Set<T> pool) =>
-      where((element) => pool.contains(element)).length;
-
-  Iterable<T> withoutNulls({T? nullReplacement = null}) =>
-      nullReplacement == null
-          ? where((element) => element != null)
-          : map((e) => e ?? nullReplacement);
-}
-
-extension NumericalRecordColumnExtensions on List<num?> {
-  List<double> cumSum() => _nullPurgedDoubles().fold(
-      [],
-      (sums, element) =>
-          sums..add(sums.isEmpty ? element : sums.last + element));
-
-  double mean({bool treatNullsAsZeros = true}) {
-    final nullPurged = _nullPurgedDoubles(treatNullsAsZeros: treatNullsAsZeros);
-    return nullPurged.sum / nullPurged.length;
-  }
-
-  List<double> _nullPurgedDoubles({bool treatNullsAsZeros = false}) =>
-      (withoutNulls(nullReplacement: treatNullsAsZeros ? 0.0 : null))
-          .map((e) => e!.toDouble())
-          .toList();
-}
-
-/// A function that compares two objects for sorting. It will return -1 if a
-/// should be ordered before b, 0 if a and b are equal wrt to ordering, and 1
-/// if a should be ordered after b.
-typedef CompareRecords = int Function(Record a, Record b);

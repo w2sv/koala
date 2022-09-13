@@ -187,7 +187,9 @@ void main() {
     expect(df<int?>('col1').runtimeType.toString(), 'List<int?>');
 
     // columnIterable
-    expect(df.columnIterable().toList(), [[1, 1, null], [2, 1, 8]]);
+    expect(df.columns().toList(), [[1, 1, null], [2, 1, 8]]);
+    
+    df.rowsWhere((df('col1') > 6) & (df('col2') <= 5));
 
     // record
     expect(df.record(2, 'col1'), null);
@@ -220,8 +222,8 @@ void main() {
     expect(df('col1').count(null), 1);
     expect(df('col2').countElementOccurrencesOf({1, 2}), 2);
 
-    expect(df('col1').withoutNulls(), [1, 1]);
-    expect(df('col1').withoutNulls(nullReplacement: 69), [1, 1, 69]);
+    expect(df('col1').nullFreed(), [1, 1]);
+    expect(df('col1').nullFreed(replaceWith: 69), [1, 1, 69]);
   });
 
   test('sorting', () async {
