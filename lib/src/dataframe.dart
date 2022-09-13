@@ -67,7 +67,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// If [containsHeader] is set to true (default), the first row of the
   /// converted csv data will be used as column names. Otherwise,
   /// the [columnNames] are to be passed.
-  /// 
+  ///
   /// Passing [parseAsNull] leads to the specified value being replaced by null.
   ///
   /// Upon [skipColumns] being specified, the corresponding columns will not be
@@ -77,7 +77,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// [convertNumeric] leads to double and int values automatically being
   /// respectively converted. [convertDates] leads to attempting a DateFormat conversion
   /// for each column. This conversion may additionally be parametrized with [datePattern].
-  /// A datetime looking like '13.08.2022' could be parsed by setting the [datePattern] to 
+  /// A datetime looking like '13.08.2022' could be parsed by setting the [datePattern] to
   /// 'dd.MM.yyyy', for instance.
   static Future<DataFrame> fromCsv(
       {String? path,
@@ -124,9 +124,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
             textEndDelimiter: textDelimiter,
             eol: eolToken,
             shouldParseNumbers: convertNumeric,
-            allowInvalid: false
-        )
-    );
+            allowInvalid: false));
 
     // take only {maxRows} rows if passed
     if (maxRows != null) {
@@ -153,10 +151,10 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     // NOTE: this should really be done by the CsvToListConverter, however there's no
     // respective parameter to do so. Iterating twice over the entirety of the data
     // introduces a ton of overhead
-    if (parseAsNull.isNotEmpty){
-      df.forEachIndexed((i, row) { 
+    if (parseAsNull.isNotEmpty) {
+      df.forEachIndexed((i, row) {
         row.forEachIndexed((j, record) {
-          if (parseAsNull.contains(record)){
+          if (parseAsNull.contains(record)) {
             df[i][j] = null;
           }
         });
@@ -171,8 +169,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
               name,
               (element) => element != null
                   ? Jiffy(element, datePattern).dateTime
-                  : null
-          );
+                  : null);
         } catch (_) {}
       }
     }
@@ -181,41 +178,37 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   }
 
   /// Save the instance as csv to [path].
-  /// 
+  ///
   /// Set [includeHeader] to false to only include the data in the csv.
   /// Null values will be saved as [nullRepresentation].
   /// [fieldDelimiter], [textDelimiter] & [eolToken] will be forwarded to the invoked [ListToCsvConverter].
   /// The [encoding] specifies the encoding of the saved file.
-  Future<void> toCsv(
-      String path,
-      {
-        bool includeHeader = true,
-        String? nullRepresentation = null,
-        String fieldDelimiter = defaultFieldDelimiter,
-        String textDelimiter = '',
-        String eolToken = defaultEol,
-        Encoding encoding = utf8
-      }){
+  Future<void> toCsv(String path,
+      {bool includeHeader = true,
+      String? nullRepresentation = null,
+      String fieldDelimiter = defaultFieldDelimiter,
+      String textDelimiter = '',
+      String eolToken = defaultEol,
+      Encoding encoding = utf8}) {
     DataMatrix fields = this;
 
     // NOTE: this should be done by the ListToCsvConverter
-    if (nullRepresentation != null){
-      fields = fields.map((row) => row.map((e) => e ?? nullRepresentation).toFixedLengthList()).toFixedLengthList();
+    if (nullRepresentation != null) {
+      fields = fields
+          .map((row) =>
+              row.map((e) => e ?? nullRepresentation).toFixedLengthList())
+          .toFixedLengthList();
     }
 
-    return File(path)
-        .writeAsString(
-        ListToCsvConverter()
-            .convert(
+    return File(path).writeAsString(
+        ListToCsvConverter().convert(
             includeHeader ? <List<Record>>[columnNames] + fields : fields,
             fieldDelimiter: fieldDelimiter,
             textDelimiter: textDelimiter,
             textEndDelimiter: textDelimiter,
             eol: eolToken,
-            delimitAllFields: true
-        ),
-        encoding: encoding
-    );
+            delimitAllFields: true),
+        encoding: encoding);
   }
 
   // ************** column names ***************
@@ -239,13 +232,8 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   ///
   /// If [start] and/or [end] are specified the column will be sliced respectively,
   /// after which [includeRecord], if specified, may determine which elements are to be included.
-  List<T> call<T>(
-      String colName,
-      {
-        int start = 0,
-        int? end,
-        bool Function(T)? includeRecord
-      }) {
+  List<T> call<T>(String colName,
+      {int start = 0, int? end, bool Function(T)? includeRecord}) {
     Iterable<T> column =
         sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
     if (includeRecord != null) {
@@ -414,7 +402,8 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) || (other is DataFrame && hashCode == other.hashCode);
+      identical(this, other) ||
+      (other is DataFrame && hashCode == other.hashCode);
 
   /// Returns a readable String representation of the instance including its
   /// row indices, column names & data
@@ -441,8 +430,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
               .mapIndexed((index, element) =>
                   element.toString().padRight(columnWidths[index]))
               .join(consecutiveElementDelimiter))
-        ])
-            .map((e) => e.join(indexColumnDelimiter)).join('\n');
+        ]).map((e) => e.join(indexColumnDelimiter)).join('\n');
   }
 }
 
