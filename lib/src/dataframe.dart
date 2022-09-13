@@ -9,6 +9,7 @@ import 'package:jiffy/jiffy.dart';
 import 'list_extensions/extended_list_base.dart';
 import 'list_extensions/position_tracking_list.dart';
 import 'utils/list.dart';
+import 'utils/iterable.dart';
 
 typedef Record = Object?;
 typedef RecordRowMap = Map<String, Record>;
@@ -16,6 +17,8 @@ typedef RecordRowMap = Map<String, Record>;
 typedef Records = List<Record>;
 typedef RecordRow = Records;
 typedef RecordCol = Records;
+
+typedef DataMatrix = List<RecordRow>;
 
 /// DataFrame for all sorts of data accumulation, analysis & manipulation and collection tasks.
 ///
@@ -28,7 +31,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   /// Build a dataframe from specified [columnNames] and [data].
   /// The [data] is expected to be of the shape (rows x columns).
-  DataFrame.fromNamesAndData(List<String> columnNames, List<RecordRow> data)
+  DataFrame.fromNamesAndData(List<String> columnNames, DataMatrix data)
       : this._columnNames = PositionTrackingList(columnNames),
         super(data) {
     if (data.isEmpty) {
@@ -48,7 +51,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
       : this._columnNames = PositionTrackingList(rowMaps.first.keys.toList()),
         super(rowMaps.map((e) => e.values.toList()).toList());
 
-  /// Build an empty dataframe
+  /// Returns an empty dataframe
   DataFrame.empty()
       : this._columnNames = PositionTrackingList([]),
         super([]);
@@ -58,12 +61,14 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// Pass either a csv file [path] or a [rowStream], which you may process
   /// beforehand in some way.
   ///
-  /// [fieldDelimiter], [textEndDelimiter], [textEndDelimiter] & [eolToken] will be
+  /// [fieldDelimiter], [textDelimiter] & [eolToken] will be
   /// passed to the employed [CsvToListConverter].
   ///
   /// If [containsHeader] is set to true (default), the first row of the
   /// converted csv data will be used as column names. Otherwise,
   /// the [columnNames] are to be passed.
+  /// 
+  /// Passing [parseAsNull] leads to the specified value being replaced by null.
   ///
   /// Upon [skipColumns] being specified, the corresponding columns will not be
   /// added to the data frame. Likewise, only [maxRows] rows of csv data, excluding
@@ -71,19 +76,21 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   ///
   /// [convertNumeric] leads to double and int values automatically being
   /// respectively converted. [convertDates] leads to attempting a DateFormat conversion
-  /// for each column.
+  /// for each column. This conversion may additionally be parametrized with [datePattern].
+  /// A datetime looking like '13.08.2022' could be parsed by setting the [datePattern] to 
+  /// 'dd.MM.yyyy', for instance.
   static Future<DataFrame> fromCsv(
       {String? path,
       Stream<List<int>>? rowStream,
       Codec decoding = utf8,
       String fieldDelimiter = defaultFieldDelimiter,
       String? textDelimiter = defaultTextDelimiter,
-      String? textEndDelimiter,
       String eolToken = defaultEol,
       bool containsHeader = true,
       List<String>? columnNames,
       List<String>? skipColumns,
       int? maxRows,
+      Set<Record> parseAsNull = const {},
       bool convertNumeric = true,
       bool convertDates = true,
       String? datePattern}) async {
@@ -114,10 +121,12 @@ class DataFrame extends ExtendedListBase<RecordRow> {
         CsvToListConverter(
             fieldDelimiter: fieldDelimiter,
             textDelimiter: textDelimiter,
-            textEndDelimiter: textEndDelimiter,
+            textEndDelimiter: textDelimiter,
             eol: eolToken,
             shouldParseNumbers: convertNumeric,
-            allowInvalid: false));
+            allowInvalid: false
+        )
+    );
 
     // take only {maxRows} rows if passed
     if (maxRows != null) {
@@ -134,11 +143,27 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     // instantiate DataFrame
     final df = DataFrame.fromNamesAndData(columnNames, fields);
 
-    // skip columns and attempt to convert dates if required
+    // skip columns if required
     if (skipColumns != null) {
       skipColumns.forEach((name) => df.removeColumn(name));
     }
 
+    // convert records present in [parseAsNull] to null if required;
+    //
+    // NOTE: this should really be done by the CsvToListConverter, however there's no
+    // respective parameter to do so. Iterating twice over the entirety of the data
+    // introduces a ton of overhead
+    if (parseAsNull.isNotEmpty){
+      df.forEachIndexed((i, row) { 
+        row.forEachIndexed((j, record) {
+          if (parseAsNull.contains(record)){
+            df[i][j] = null;
+          }
+        });
+      });
+    }
+
+    // attempt to convert dates if required
     if (convertDates) {
       for (final name in df._columnNames) {
         try {
@@ -146,12 +171,51 @@ class DataFrame extends ExtendedListBase<RecordRow> {
               name,
               (element) => element != null
                   ? Jiffy(element, datePattern).dateTime
-                  : null);
+                  : null
+          );
         } catch (_) {}
       }
     }
 
     return df;
+  }
+
+  /// Save the instance as csv to [path].
+  /// 
+  /// Set [includeHeader] to false to only include the data in the csv.
+  /// Null values will be saved as [nullRepresentation].
+  /// [fieldDelimiter], [textDelimiter] & [eolToken] will be forwarded to the invoked [ListToCsvConverter].
+  /// The [encoding] specifies the encoding of the saved file.
+  Future<void> toCsv(
+      String path,
+      {
+        bool includeHeader = true,
+        String? nullRepresentation = null,
+        String fieldDelimiter = defaultFieldDelimiter,
+        String textDelimiter = '',
+        String eolToken = defaultEol,
+        Encoding encoding = utf8
+      }){
+    DataMatrix fields = this;
+
+    // NOTE: this should be done by the ListToCsvConverter
+    if (nullRepresentation != null){
+      fields = fields.map((row) => row.map((e) => e ?? nullRepresentation).toFixedLengthList()).toFixedLengthList();
+    }
+
+    return File(path)
+        .writeAsString(
+        ListToCsvConverter()
+            .convert(
+            includeHeader ? <List<Record>>[columnNames] + fields : fields,
+            fieldDelimiter: fieldDelimiter,
+            textDelimiter: textDelimiter,
+            textEndDelimiter: textDelimiter,
+            eol: eolToken,
+            delimitAllFields: true
+        ),
+        encoding: encoding
+    );
   }
 
   // ************** column names ***************
@@ -160,11 +224,12 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   int get nColumns => _columnNames.length;
 
+  /// Accesses column index in O(1)
   int columnIndex(String colName) {
     try {
       return _columnNames.indexOf(colName);
     } catch (_) {
-      throw ArgumentError('Column $colName not contained by DataFrame');
+      throw ArgumentError("Column named '$colName' not present in DataFrame");
     }
   }
 
@@ -172,10 +237,15 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   /// Enables (typed) column access.
   ///
-  /// If [start] and/or [end] are specified the column will be sliced,
-  /// after which [includeRecord] may determine which elements are to be included.
-  List<T> call<T>(String colName,
-      {int start = 0, int? end, bool Function(T)? includeRecord}) {
+  /// If [start] and/or [end] are specified the column will be sliced respectively,
+  /// after which [includeRecord], if specified, may determine which elements are to be included.
+  List<T> call<T>(
+      String colName,
+      {
+        int start = 0,
+        int? end,
+        bool Function(T)? includeRecord
+      }) {
     Iterable<T> column =
         sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
     if (includeRecord != null) {
@@ -184,10 +254,10 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     return column.toList();
   }
 
-  /// Returns an iterable over the column data
+  /// Returns an iterable over the column data.
   Iterable<RecordCol> columnIterable() => _columnNames.map((e) => this(e));
 
-  /// Grab a (typed) record sitting at dataframe[rowIndex][colName]
+  /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
   T record<T>(int rowIndex, String colName) =>
       this[rowIndex][columnIndex(colName)] as T;
 
@@ -236,11 +306,11 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   // ************ alternate representations *************
 
-  /// Returns a list of {columnName: value} representations for each row.
+  /// Returns a list of {columnName: value} Map-representations for each row.
   List<RecordRowMap> rowMaps() =>
       [for (final row in this) Map.fromIterables(_columnNames, row)];
 
-  /// Returns a {columnName: columnData} representation
+  /// Returns a {columnName: columnData} representation.
   Map<String, RecordCol> columnMap() => Map.fromIterable(
         _columnNames,
         value: (name) => this(name),
@@ -248,16 +318,16 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   // ************ copying *************
 
-  /// Returns a deep copy of the dataframe
+  /// Returns a deep copy of the dataframe.
   DataFrame copy() => DataFrame._copied(_columnNames, this);
 
-  DataFrame._copied(PositionTrackingList<String> columns, List<RecordRow> data)
+  DataFrame._copied(PositionTrackingList<String> columns, DataMatrix data)
       : this._columnNames = columns.copy(),
         super(copy2D(data));
 
   // ************** slicing ****************
 
-  /// Returns a new, row-sliced dataframe
+  /// Returns a new, row-sliced dataframe.
   DataFrame sliced(int start, [int? end]) =>
       DataFrame._copied(_columnNames, sublist(start, end));
 
@@ -269,16 +339,15 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   // **************** sorting ****************
 
-  /// Get a new dataframe sorted by a column.
+  /// Returns a new dataframe sorted by the column [colName].
   ///
-  /// By default, rows are ordered by calling [Comparable.compare] on column
-  /// values and nulls are handled according to the specified [nullsFirst].
-  /// To customize sorting, you can either use your own [Comparable] as column
-  /// values or specify a custom compare function.
-  /// Sort_ does not guarantee a stable sort order.
+  /// By default, rows are ordered by plugging pairs of records into [Comparable.compare]
+  /// whilst taking [ascending] and [nullsFirst] into account.
   ///
-  /// Note that `nullBehavior` and `compare` are mutually exclusive arguments.
-  /// Custom compare functions must handle nulls appropriately.
+  /// To customize sorting, pass a custom [compareRecords] function, in which case
+  /// [ascending] and [nullsFirst] will be ignored.
+  ///
+  /// [sortedBy] does not guarantee a stable sort order.
   DataFrame sortedBy(String colName,
           {bool ascending = true,
           bool nullsFirst = true,
@@ -292,16 +361,9 @@ class DataFrame extends ExtendedListBase<RecordRow> {
             compareRecords: compareRecords),
       );
 
-  /// In-place sort this dataframe by a column.
+  /// In-place counterpart to [sortedBy].
   ///
-  /// By default, rows are ordered by calling [Comparable.compare] on column
-  /// values and nulls are handled according to the specified [nullsFirst].
-  /// To customize sorting, you can either use your own [Comparable] as column
-  /// values or specify a custom compare function.
-  /// Sort does not guarantee a stable sort order.
-  ///
-  /// Note that `nullBehavior` and `compare` are mutually exclusive arguments.
-  /// Custom compare functions must handle nulls appropriately.
+  /// For parameter documentation consult [sortedBy]
   void sortBy(String colName,
           {bool ascending = true,
           bool nullsFirst = true,
@@ -312,7 +374,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
           nullsFirst: nullsFirst,
           compareRecords: compareRecords);
 
-  List<RecordRow> _sort(String colName,
+  DataMatrix _sort(String colName,
       {required bool inPlace,
       required bool ascending,
       required bool nullsFirst,
@@ -344,11 +406,6 @@ class DataFrame extends ExtendedListBase<RecordRow> {
         : Comparable.compare(comparableB, comparableA);
   }
 
-  // ************* misc **************
-
-  String structureRepresentation() =>
-      '${_columnNames.length} columns; $length rows; column names: ${_columnNames.join(', ')}';
-
   // ************* Object overrides ******************
 
   /// Returns hashCode accounting for both the [_data] and [_columnNames]
@@ -357,11 +414,10 @@ class DataFrame extends ExtendedListBase<RecordRow> {
 
   @override
   bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is DataFrame &&
-          this.l == other.l &&
-          this._columnNames == other._columnNames);
+      identical(this, other) || (other is DataFrame && hashCode == other.hashCode);
 
+  /// Returns a readable String representation of the instance including its
+  /// row indices, column names & data
   @override
   String toString() {
     final indexColumnLength = length.toString().length;
@@ -385,7 +441,8 @@ class DataFrame extends ExtendedListBase<RecordRow> {
               .mapIndexed((index, element) =>
                   element.toString().padRight(columnWidths[index]))
               .join(consecutiveElementDelimiter))
-        ]).map((e) => e.join(indexColumnDelimiter)).join('\n');
+        ])
+            .map((e) => e.join(indexColumnDelimiter)).join('\n');
   }
 }
 

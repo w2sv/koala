@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:koala/koala.dart';
 import 'package:test/test.dart';
 
@@ -15,6 +17,11 @@ DataFrame _getDF() =>
       {'col1': 1, 'col2': 1},
       {'col1': null, 'col2': 8},
     ]);
+
+final _outputDir = Directory('test/output');
+
+String _outputFilePath(String name) =>
+    '${_outputDir.path}/$name';
 
 void main() {
   test('fromRowMaps', () async {
@@ -187,7 +194,7 @@ void main() {
     expect(df.record(2, 'col2'), 8);
   });
 
-  test('map representations', () {
+  test('map conversions', () {
     final df = _getDF();
 
     expect(df.columnMap(), {
@@ -252,9 +259,54 @@ void main() {
     expect(df6_1('col1'), [null, 4, 3, 2, 1]);
   });
 
+  group('toCsv', () {
+    test('default', () async {
+      final outputCsvPath = _outputFilePath('out.csv');
+      final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, 'asdf', 33.53], [65, 'dsafa', 89]]);
+      df.toCsv(outputCsvPath);
+      expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+    });
+
+    test('with null', () async {
+      final outputCsvPath = _outputFilePath('out1.csv');
+      final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, 'asdf', null], [null, 'dsafa', 89]]);
+      df.toCsv(outputCsvPath, nullRepresentation: '');
+      expect(await DataFrame.fromCsv(path: outputCsvPath, parseAsNull: {''}), df);
+    });
+
+    // test('with double quote including strings', () async {
+    //   final outputCsvPath = _outputFilePath('out1.csv');
+    //   final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, "as'df", 33.53], [65, 'dsafa', 89]]);
+    //   df.toCsv(outputCsvPath);
+    //   expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+    // });
+
+    test('with single quote including strings', () async {
+      final outputCsvPath = _outputFilePath('out3.csv');
+      final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, "as''df", 33.53], [65, "ds'afa", 89]]);
+      df.toCsv(outputCsvPath);
+      expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+    });
+
+    test('without header', () async {
+      final outputCsvPath = _outputFilePath('out4.csv');
+      final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, "asdf", 33.53], [65, "dsafa", 89]]);
+      df.toCsv(outputCsvPath, includeHeader: false);
+
+      final lines = await File(outputCsvPath).readAsLines();
+      expect(lines.length, 2);
+      expect(lines.first, '12,asdf,33.53');
+    });
+  });
+
+  tearDownAll((){
+    _outputDir.list().forEach((element) => element.delete());
+  });
+
   test('misc', (){
     final df = DataFrame.empty();
-    expect(df.structureRepresentation(), '0 columns; 0 rows; column names: ');
+    expect(df.nColumns, 0);
+    expect(df.length, 0);
 
     expect(() => DataFrame.fromNamesAndData(['b'], []), throwsArgumentError);
     expect(() => DataFrame.fromNamesAndData(['b'], [[888, 1]]), throwsArgumentError);
