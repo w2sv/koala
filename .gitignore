@@ -78,3 +78,6 @@ example/ios/Flutter/flutter_export_environment.sh
 test/.test_coverage.dart
 /coverage/
 /coverage-html/
+
+# Test output
+/test/output/
