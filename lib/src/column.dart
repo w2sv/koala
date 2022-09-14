@@ -24,7 +24,7 @@ class Column<E> extends ListBase<E> {
   Column<E> nullFree({E? replaceWith = null}) =>
       Column<E>(nullFreeIterable(replaceWith: replaceWith).toList());
 
-  /// Iterable-returning counterpart of [nullFree]. 
+  /// Iterable-returning counterpart of [nullFree].
   /// Consult [nullFree] for further documentation.
   Iterable<E> nullFreeIterable({E? replaceWith = null}) => replaceWith == null
       ? where((element) => element != null)
@@ -38,10 +38,11 @@ class Column<E> extends ListBase<E> {
   /// accounted for.
   ///
   /// Note: requires column records type to be a subtype of <num?>
-  List<num> cumulativeSum({bool treatNullsAsZeros = true}) => _nullFreedNums(treatNullsAsZeros: treatNullsAsZeros).fold(
-      [],
-      (sums, element) =>
-          sums..add(sums.isEmpty ? element : sums.last + element));
+  List<num> cumulativeSum({bool treatNullsAsZeros = true}) =>
+      _nullFreedNums(treatNullsAsZeros: treatNullsAsZeros).fold(
+          [],
+          (sums, element) =>
+              sums..add(sums.isEmpty ? element : sums.last + element));
 
   // **************** accumulation ****************
 

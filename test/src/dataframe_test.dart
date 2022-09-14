@@ -234,7 +234,6 @@ void main() {
 
     // .columnIterable
     expect(df.columnIterable('a').toList(), [43, 701, -9, -32]);
-    expect(df.columnIterable<double?>('a') is Iterable<double?>, true);
 
     // .columns
     expect(df.columns().toList(), [

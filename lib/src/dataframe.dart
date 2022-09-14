@@ -236,7 +236,7 @@ class DataFrame extends ListBase<RecordRow> {
   ///
   /// If [start] and/or [end] are specified, the column will be sliced respectively.
   Column<T> call<T>(String colName, {int start = 0, int? end}) =>
-    Column(columnIterable<T>(colName, start: start, end: end).toList());
+      Column(columnIterable<T>(colName, start: start, end: end).toList());
 
   Iterable<T> columnIterable<T>(String colName, {int start = 0, int? end}) =>
       sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();

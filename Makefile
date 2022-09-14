@@ -17,10 +17,10 @@ coverage-html:
 # $$$$$$$$$ Publishing $$$$$$$$$$
 
 pre-publish:
-	dart format lib
-	dart analyze
-	dart doc
-	dart pub publish --dry-run
+	@dart format lib
+	@dart analyze
+	@dart doc
+	@dart pub publish --dry-run
 
 patch-version:
 	dart pub global activate pubversion
