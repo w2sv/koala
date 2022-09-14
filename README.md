@@ -25,7 +25,7 @@ final fromCsv = Dataframe.fromCsv(
     datePattern: 'dd-MM-yyyy'
 );
 
-final fromNamesAndData = DataFrame.fromNamesAndData(
+final fromNamesAndData = DataFrame(
     ['a', 'b'], 
     [
       [1, 2],
