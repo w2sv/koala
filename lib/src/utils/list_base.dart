@@ -1,9 +1,9 @@
-import 'dart:collection';
+import 'dart:collection' as collection;
 
-abstract class ExtendedListBase<E> extends ListBase<E> {
+abstract class ListBase<E> extends collection.ListBase<E> {
   final List<E> l;
 
-  ExtendedListBase(this.l);
+  ListBase(this.l);
 
   @override
   void set length(int newLength) {

@@ -74,10 +74,5 @@ example/ios/Flutter/flutter_export_environment.sh
 !**/ios/**/default.perspectivev3
 !/packages/flutter_tools/test/data/dart_dependencies_test/**/.packages
 
-# Coverage report
-test/.test_coverage.dart
+# Coverage
 /coverage/
-/coverage-html/
-
-# Test output
-/test/output/
