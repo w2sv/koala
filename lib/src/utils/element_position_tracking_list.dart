@@ -10,7 +10,8 @@ class ElementPositionTrackingList<T> extends ListBase<T> {
       : _object2Index = elements.asInvertedMap(),
         super(elements);
 
-  ElementPositionTrackingList<T> copy() => ElementPositionTrackingList(ListExtensions(this).copy());
+  ElementPositionTrackingList<T> copy() =>
+      ElementPositionTrackingList(ListExtensions(this).copy());
 
   // *************** overrides *******************
 

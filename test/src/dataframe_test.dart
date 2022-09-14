@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:koala/koala.dart';
 import 'package:test/test.dart';
 
-String _csvPath(String name) => 'test/data/$name';
+import '../test_utils.dart';
 
 extension RecordsExtensions on Records {
   Set<Type> _types() => map((e) => e.runtimeType).toSet();
@@ -14,10 +14,6 @@ DataFrame _getDF() => DataFrame.fromRowMaps([
       {'col1': 1, 'col2': 1},
       {'col1': null, 'col2': 8},
     ]);
-
-final _outputDir = Directory('test/output');
-
-String _outputFilePath(String name) => '${_outputDir.path}/$name';
 
 void main() {
   test('fromRowMaps', () async {
@@ -46,7 +42,7 @@ void main() {
   group('fromCsv', () {
     test('basic parsing', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('with_date.csv'), convertDates: false, eolToken: '\n');
+          path: csvPath('with_date.csv'), convertDates: false, eolToken: '\n');
       expect(df.columnNames, ['symbol', 'date', 'price', 'n']);
       expect(df.length, 2);
       expect(df('price')._types(), {double});
@@ -55,7 +51,7 @@ void main() {
 
     test('automatic date conversion', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('iso_date.csv'), eolToken: '\n');
+          path: csvPath('iso_date.csv'), eolToken: '\n');
       expect(df('date')._types(), {DateTime});
       expect(df('date').map((el) => el.toString()).toList(),
           ['2020-04-12 12:16:54.220', '2020-04-12 12:16:54.220']);
@@ -63,7 +59,7 @@ void main() {
 
     test('date conversion with specified format', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('with_date.csv'),
+          path: csvPath('with_date.csv'),
           eolToken: '\n',
           datePattern: 'MMM d yyyy');
 
@@ -72,19 +68,19 @@ void main() {
 
     test('newline at the end of file', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('terminating_newline.csv'), eolToken: '\n');
+          path: csvPath('terminating_newline.csv'), eolToken: '\n');
       expect(df.length, 1);
     });
 
     test('max rows', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('stocks.csv'), eolToken: '\n', maxRows: 20);
+          path: csvPath('stocks.csv'), eolToken: '\n', maxRows: 20);
       expect(df.length, 20);
     });
 
     test('no header', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('no_header.csv'),
+          path: csvPath('no_header.csv'),
           eolToken: '\n',
           containsHeader: false,
           columnNames: ['symbol', 'date', 'price', 'n']);
@@ -94,7 +90,7 @@ void main() {
 
     test('skip columns', () async {
       DataFrame df = await DataFrame.fromCsv(
-          path: _csvPath('with_date.csv'),
+          path: csvPath('with_date.csv'),
           eolToken: '\n',
           skipColumns: ['price']);
       expect(df.length, 2);
@@ -150,7 +146,7 @@ void main() {
 
   test('slicing', () async {
     DataFrame df =
-        (await DataFrame.fromCsv(path: _csvPath('stocks.csv'), eolToken: '\n'))
+        (await DataFrame.fromCsv(path: csvPath('stocks.csv'), eolToken: '\n'))
           ..slice(0, 30);
     expect(df.length, 30);
 
@@ -289,7 +285,7 @@ void main() {
 
   group('toCsv', () {
     test('default', () async {
-      final outputCsvPath = _outputFilePath('out.csv');
+      final outputCsvPath = outputFilePath('out.csv');
       final df = DataFrame.fromNamesAndData([
         'a',
         'b',
@@ -303,7 +299,7 @@ void main() {
     });
 
     test('with null', () async {
-      final outputCsvPath = _outputFilePath('out1.csv');
+      final outputCsvPath = outputFilePath('out1.csv');
       final df = DataFrame.fromNamesAndData([
         'a',
         'b',
@@ -325,7 +321,7 @@ void main() {
     // });
 
     test('with single quote including strings', () async {
-      final outputCsvPath = _outputFilePath('out3.csv');
+      final outputCsvPath = outputFilePath('out3.csv');
       final df = DataFrame.fromNamesAndData([
         'a',
         'b',
@@ -339,7 +335,7 @@ void main() {
     });
 
     test('without header', () async {
-      final outputCsvPath = _outputFilePath('out4.csv');
+      final outputCsvPath = outputFilePath('out4.csv');
       final df = DataFrame.fromNamesAndData([
         'a',
         'b',
@@ -357,7 +353,7 @@ void main() {
   });
 
   tearDownAll(() {
-    _outputDir.list().forEach((element) => element.delete());
+    outputDir.list().forEach((element) => element.delete());
   });
 
   test('misc', () {

@@ -49,7 +49,8 @@ class DataFrame extends ListBase<RecordRow> {
   /// [{'col1': 420, 'col2': 69},
   ///  {'col1': 666, 'col2': 1470}]
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
-      : this._columnNames = ElementPositionTrackingList(rowMaps.first.keys.toList()),
+      : this._columnNames =
+            ElementPositionTrackingList(rowMaps.first.keys.toList()),
         super(rowMaps.map((e) => e.values.toList()).toList());
 
   /// Returns an empty dataframe.
@@ -322,7 +323,8 @@ class DataFrame extends ListBase<RecordRow> {
   /// Returns a deep copy of the dataframe.
   DataFrame copy() => DataFrame._copied(_columnNames, this);
 
-  DataFrame._copied(ElementPositionTrackingList<String> columns, DataMatrix data)
+  DataFrame._copied(
+      ElementPositionTrackingList<String> columns, DataMatrix data)
       : this._columnNames = columns.copy(),
         super(ListListExtensions(data).copy());
 
