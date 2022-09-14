@@ -5,8 +5,10 @@ SHELL=/bin/bash
 test-and-show-coverage: run-tests coverage-html
 
 run-tests:
-	dart pub global activate coverage
-	dart pub global run coverage:test_with_coverage
+	@dart run test --coverage=./coverage --chain-stack-traces
+	@echo "Converting to lcov.info"
+	@dart pub global activate coverage > /dev/null
+	@dart pub global run coverage:format_coverage --packages=.dart_tool/package_config.json --report-on=lib --lcov -o ./coverage/lcov.info -i ./coverage
 
 coverage-html:
 	genhtml coverage/lcov.info -o coverage/html
