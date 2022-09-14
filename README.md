@@ -2,6 +2,8 @@
 
 [![Build](https://github.com/w2sv/koala/actions/workflows/build.yaml/badge.svg)](https://github.com/w2sv/koala/actions/workflows/build.yaml)
 [![codecov](https://codecov.io/gh/w2sv/koala/branch/master/graph/badge.svg?token=LI73RYG6T0)](https://codecov.io/gh/w2sv/koala)
+![Pub Version](https://img.shields.io/pub/v/koala)
+![Pub Points](https://img.shields.io/pub/points/koala)
 [![GitHub](https://img.shields.io/github/license/w2sv/koala)](https://github.com/w2sv/koala/blob/master/LICENSE)
 
 A poor man's version of a pandas DataFrame.\
