@@ -2,19 +2,6 @@ import 'package:collection/collection.dart';
 
 import 'utils/list_base.dart';
 
-typedef Mask = List<bool>;
-
-extension MaskExtensions on Mask {
-  Mask operator &(Mask other) =>
-      IterableZip([this, other]).map((e) => e.first && e.last).toList();
-
-  Mask operator |(Mask other) =>
-      IterableZip([this, other]).map((e) => e.first | e.last).toList();
-
-  Mask operator ^(Mask other) =>
-      IterableZip([this, other]).map((e) => e.first ^ e.last).toList();
-}
-
 class Column<E> extends ListBase<E> {
   Column(List<E> records) : super(records);
 
@@ -27,7 +14,7 @@ class Column<E> extends ListBase<E> {
 
   /// Count number of occurrences of values, corresponding to the column [colName],
   /// equaling any element contained by [pool].
-  int countElementOccurrencesOf(Set<E?> pool) =>
+  int countElementOccurrencesOf(Set<E> pool) =>
       where((element) => pool.contains(element)).length;
 
   // ************* null freeing *************
@@ -41,7 +28,7 @@ class Column<E> extends ListBase<E> {
 
   // ****************** transformation ******************
 
-  List<num> cumSum() => _nullFreedNums().fold(
+  List<num> cumSum({bool treatNullsAsZeros = true}) => _nullFreedNums(treatNullsAsZeros: treatNullsAsZeros).fold(
       [],
       (sums, element) =>
           sums..add(sums.isEmpty ? element : sums.last + element));
@@ -58,7 +45,7 @@ class Column<E> extends ListBase<E> {
   num sum() => _nullFreedNums().sum;
 
   Iterable<num> _nullFreedNums({bool treatNullsAsZeros = false}) => cast<num?>()
-      .nullFreedIterable(replaceWith: treatNullsAsZeros ? 0.0 : null)
+      .nullFreedIterable(replaceWith: treatNullsAsZeros ? 0 : null)
       .cast<num>();
 
   // ***************** masks *******************
@@ -75,7 +62,7 @@ class Column<E> extends ListBase<E> {
   Mask isNotIn(Set<E> pool) =>
       map((element) => !pool.contains(element)).toList().cast<bool>();
 
-  Mask toMask(bool Function(E) test) => map(test).toList().cast<bool>();
+  Mask maskFrom(bool Function(E) test) => map(test).toList().cast<bool>();
 
   // ****************** numerical column masks *********************
 
@@ -90,4 +77,17 @@ class Column<E> extends ListBase<E> {
 
   Mask operator >=(num reference) =>
       cast<num>().map((element) => element >= reference).toList().cast<bool>();
+}
+
+typedef Mask = List<bool>;
+
+extension MaskExtensions on Mask {
+  Mask operator &(Mask other) =>
+      IterableZip([this, other]).map((e) => e.first && e.last).toList();
+
+  Mask operator |(Mask other) =>
+      IterableZip([this, other]).map((e) => e.first | e.last).toList();
+
+  Mask operator ^(Mask other) =>
+      IterableZip([this, other]).map((e) => e.first ^ e.last).toList();
 }

@@ -16,30 +16,48 @@ DataFrame _getDF() => DataFrame.fromRowMaps([
     ]);
 
 void main() {
-  test('fromRowMaps', () async {
-    final date = DateTime.now();
-    final rows = [
-      {'col1': 'a', 'col2': 1, 'col3': 1.0, 'col4': date},
-      {'col1': 'b', 'col2': 2, 'col3': 2.0, 'col4': date},
-      {'col1': 'c', 'col2': 3, 'col3': null, 'col4': null},
-    ];
-    DataFrame df = DataFrame.fromRowMaps(rows);
-    expect(df.length, 3);
-    expect(df.columnNames, <String>['col1', 'col2', 'col3', 'col4']);
-    expect(df.rowMaps(), rows);
-    expect(df, <Object>[
-      ['a', 1, 1.0, date],
-      ['b', 2, 2.0, date],
-      ['c', 3, null, null],
-    ]);
-    expect(df<String>('col1'), ['a', 'b', 'c']);
-    expect(df<String>('col1', end: 1), ['a']);
-    expect(df<String>('col1', start: 1, end: 1), <String>[]);
-    expect(df<String>('col1', start: 1, end: 2), ['b']);
-    expect(df.columnNames, ['col1', 'col2', 'col3', 'col4']);
+  group('constructors', (){
+    test('default', () {
+      expect(() => DataFrame(['b'], []), throwsArgumentError);
+      expect(
+              () => DataFrame([
+            'b'
+          ], [
+            [888, 1]
+          ]),
+          throwsArgumentError);
+    });
+
+    test('.empty', (){
+      final df = DataFrame.empty();
+      expect(df.shape, [0, 0]);
+    });
+
+    test('.fromRowMaps', () async {
+      final date = DateTime.now();
+      final rows = [
+        {'col1': 'a', 'col2': 1, 'col3': 1.0, 'col4': date},
+        {'col1': 'b', 'col2': 2, 'col3': 2.0, 'col4': date},
+        {'col1': 'c', 'col2': 3, 'col3': null, 'col4': null},
+      ];
+      DataFrame df = DataFrame.fromRowMaps(rows);
+      expect(df.length, 3);
+      expect(df.columnNames, <String>['col1', 'col2', 'col3', 'col4']);
+      expect(df.rowMaps(), rows);
+      expect(df, <Object>[
+        ['a', 1, 1.0, date],
+        ['b', 2, 2.0, date],
+        ['c', 3, null, null],
+      ]);
+      expect(df<String>('col1'), ['a', 'b', 'c']);
+      expect(df<String>('col1', end: 1), ['a']);
+      expect(df<String>('col1', start: 1, end: 1), <String>[]);
+      expect(df<String>('col1', start: 1, end: 2), ['b']);
+      expect(df.columnNames, ['col1', 'col2', 'col3', 'col4']);
+    });
   });
 
-  group('fromCsv', () {
+  group('.fromCsv', () {
     test('basic parsing', () async {
       DataFrame df = await DataFrame.fromCsv(
           path: csvPath('with_date.csv'), convertDates: false, eolToken: '\n');
@@ -102,10 +120,12 @@ void main() {
     });
   });
 
-  test('columns', () {
+  test('structure', () {
     final df = _getDF();
     expect(df.columnNames, ['col1', 'col2']);
     expect(df.nColumns, 2);
+    expect(df.length, 3);
+    expect(df.shape, [3, 2]);
   });
 
   test('copying', () {
@@ -130,7 +150,7 @@ void main() {
         '2 | null 8   ');
 
     final df_with_longer_elements_than_column_names =
-        DataFrame.fromNamesAndData([
+        DataFrame([
       'a',
       'b'
     ], [
@@ -159,7 +179,7 @@ void main() {
     expect(df.columnNames, ['symbol', 'date', 'price']);
   });
 
-  test('mutate', () async {
+  test('manipulation', () async {
     final rows = <Map<String, Object>>[
       {'col1': 0, 'col2': 4},
       {'col1': 1, 'col2': 2},
@@ -192,29 +212,82 @@ void main() {
     expect(() => df.addColumn('col3', [1, 2, 3]), throwsArgumentError);
   });
 
-  test('columns & record access', () {
-    final df = _getDF();
+  test('data access', () {
+    final df = DataFrame(
+        ['a', 'b', 'c'], 
+        [
+          [43, 'omg', null],
+          [701, '', 75.3],
+          [-9, 'ubiquitous', 101.8],
+          [-32, 'noob', -.7]
+        ]
+    );
 
     // column access
-    expect(df('col1'), [1, 1, null]);
-    expect(df('col1', includeRecord: (element) => element != null), [1, 1]);
+    expect(df('a'), [43, 701, -9, -32]);
+    expect(df('a').where((element) => element > 0), [43, 701]);
     expect(() => df('nonExistent'), throwsArgumentError);
 
-    // typing
-    expect(df('col1').runtimeType.toString(), 'Column<dynamic>');
-    expect(df<int?>('col1').runtimeType.toString(), 'Column<int?>');
+    // column typing
+    expect(df('a').runtimeType.toString(), 'Column<dynamic>');
+    expect(df<int?>('a').runtimeType.toString(), 'Column<int?>');
 
-    // columnIterable
+    // .columnIterable
+    expect(df.columnIterable('a').toList(), [43, 701, -9, -32]);
+    expect(df.columnIterable<double?>('a') is Iterable<double?>, true);
+
+    // .columns
     expect(df.columns().toList(), [
-      [1, 1, null],
-      [2, 1, 8]
+      [43, 701, -9, -32],
+      ['omg', '', 'ubiquitous', 'noob'],
+      [null, 75.3, 101.8, -.7]
     ]);
+    
+    // .withColumns
+    expect(
+        df.withColumns(['a', 'b']).toString(),
+        '    a   b         \n'
+        '0 | 43  omg       \n'
+        '1 | 701           \n'
+        '2 | -9  ubiquitous\n'
+        '3 | -32 noob      '
+    );
 
-    // df.rowsWhere((df('col1') > 6) & (df('col2') <= 5));
+    // .withColumns + .sliced
+    expect(
+        df.withColumns(['a', 'b']).sliced(1, 3).toString(),
+            '    a   b         \n'
+            '0 | 701           \n'
+            '1 | -9  ubiquitous'
+    );
 
-    // record
-    expect(df.record(2, 'col1'), null);
-    expect(df.record(2, 'col2'), 8);
+    // .rowsAt
+    expect(df.rowsAt([0, 1, 3]).toString(),
+        '    a   b    c   \n'
+        '0 | 43  omg  null\n'
+        '1 | 701      75.3\n'
+        '2 | -32 noob -0.7');
+    expect(df.rowsAt([3, 1, 0]).toString(),
+        '    a   b    c   \n'
+        '0 | -32 noob -0.7\n'
+        '1 | 701      75.3\n'
+        '2 | 43  omg  null');
+
+    // .rowsWhere
+    expect(df.rowsWhere([true, false, false, true]).toString(),
+        '    a   b    c   \n'
+        '0 | 43  omg  null\n'
+        '1 | -32 noob -0.7');
+    expect(df.rowsWhere((df('a') < 0) | df<String>('b').maskFrom((el) => el.length > 0)).toString(),
+        '    a   b          c    \n'
+        '0 | 43  omg        null \n'
+        '1 | -9  ubiquitous 101.8\n'
+        '2 | -32 noob       -0.7 '
+    );
+
+    // .record
+    expect(df.record(1, 'a'), 701);
+    expect(df.record(2, 'b'), 'ubiquitous');
   });
 
   test('map conversions', () {
@@ -229,22 +302,6 @@ void main() {
       {'col1': 1, 'col2': 1},
       {'col1': null, 'col2': 8},
     ]);
-  });
-
-  test('numerical column extensions', () async {
-    final df = _getDF();
-    expect(df<int?>('col1').mean(treatNullsAsZeros: false), 1.0);
-    expect(df<int?>('col1').mean(treatNullsAsZeros: true), closeTo(2 / 3, 1e-6));
-    expect(df<int?>('col1').cumSum(), [1, 2]);
-  });
-
-  test('generic column extensions', () async {
-    final df = _getDF();
-    expect(df('col1').count(null), 1);
-    expect(df('col2').countElementOccurrencesOf({1, 2}), 2);
-
-    expect(df('col1').nullFreed(), [1, 1]);
-    expect(df('col1').nullFreed(replaceWith: 69), [1, 1, 69]);
   });
 
   test('sorting', () async {
@@ -283,10 +340,10 @@ void main() {
     expect(df6_1('col1'), [null, 4, 3, 2, 1]);
   });
 
-  group('toCsv', () {
+  group('.toCsv', () {
     test('default', () async {
       final outputCsvPath = outputFilePath('out.csv');
-      final df = DataFrame.fromNamesAndData([
+      final df = DataFrame([
         'a',
         'b',
         'c'
@@ -296,11 +353,13 @@ void main() {
       ]);
       df.toCsv(outputCsvPath);
       expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+
+      File(outputCsvPath).delete();
     });
 
     test('with null', () async {
       final outputCsvPath = outputFilePath('out1.csv');
-      final df = DataFrame.fromNamesAndData([
+      final df = DataFrame([
         'a',
         'b',
         'c'
@@ -311,6 +370,8 @@ void main() {
       df.toCsv(outputCsvPath, nullRepresentation: '');
       expect(
           await DataFrame.fromCsv(path: outputCsvPath, parseAsNull: {''}), df);
+
+      File(outputCsvPath).delete();
     });
 
     // test('with double quote including strings', () async {
@@ -322,7 +383,7 @@ void main() {
 
     test('with single quote including strings', () async {
       final outputCsvPath = outputFilePath('out3.csv');
-      final df = DataFrame.fromNamesAndData([
+      final df = DataFrame([
         'a',
         'b',
         'c'
@@ -332,11 +393,13 @@ void main() {
       ]);
       df.toCsv(outputCsvPath);
       expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+
+      File(outputCsvPath).delete();
     });
 
     test('without header', () async {
       final outputCsvPath = outputFilePath('out4.csv');
-      final df = DataFrame.fromNamesAndData([
+      final df = DataFrame([
         'a',
         'b',
         'c'
@@ -349,25 +412,8 @@ void main() {
       final lines = await File(outputCsvPath).readAsLines();
       expect(lines.length, 2);
       expect(lines.first, '12,asdf,33.53');
+
+      File(outputCsvPath).delete();
     });
-  });
-
-  tearDownAll(() {
-    outputDir.list().forEach((element) => element.delete());
-  });
-
-  test('misc', () {
-    final df = DataFrame.empty();
-    expect(df.nColumns, 0);
-    expect(df.length, 0);
-
-    expect(() => DataFrame.fromNamesAndData(['b'], []), throwsArgumentError);
-    expect(
-        () => DataFrame.fromNamesAndData([
-              'b'
-            ], [
-              [888, 1]
-            ]),
-        throwsArgumentError);
   });
 }

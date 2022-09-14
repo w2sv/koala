@@ -32,7 +32,7 @@ class DataFrame extends ListBase<RecordRow> {
 
   /// Build a dataframe from specified [columnNames] and [data].
   /// The [data] is expected to be of the shape (rows x columns).
-  DataFrame.fromNamesAndData(List<String> columnNames, DataMatrix data)
+  DataFrame(List<String> columnNames, DataMatrix data)
       : this._columnNames = ElementPositionTrackingList(columnNames),
         super(data) {
     if (data.isEmpty) {
@@ -141,7 +141,7 @@ class DataFrame extends ListBase<RecordRow> {
     }
 
     // instantiate DataFrame
-    final df = DataFrame.fromNamesAndData(columnNames, fields);
+    final df = DataFrame(columnNames, fields);
 
     // skip columns if required
     if (skipColumns != null) {
@@ -234,23 +234,18 @@ class DataFrame extends ListBase<RecordRow> {
 
   /// Enables (typed) column access.
   ///
-  /// If [start] and/or [end] are specified the column will be sliced respectively,
-  /// after which [includeRecord], if specified, may determine which elements are to be included.
-  Column<T> call<T>(String colName,
-      {int start = 0, int? end, bool Function(T)? includeRecord}) {
-    Iterable<T> column =
-        sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
-    if (includeRecord != null) {
-      column = column.where(includeRecord);
-    }
-    return Column(column.toList());
-  }
+  /// If [start] and/or [end] are specified, the column will be sliced respectively.
+  Column<T> call<T>(String colName, {int start = 0, int? end}) =>
+    Column(columnIterable<T>(colName, start: start, end: end).toList());
 
-  DataFrame fromColumns(List<String> columnNames) => DataFrame._copied(
+  Iterable<T> columnIterable<T>(String colName, {int start = 0, int? end}) =>
+      sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
+
+  DataFrame withColumns(List<String> columnNames) => DataFrame._copied(
       ElementPositionTrackingList(columnNames),
       columnNames.map((e) => this(e)).transposed());
 
-  /// Returns an iterable over the column data.
+  /// Returns an iterable over the columns.
   Iterable<Column> columns() => _columnNames.map((e) => this(e));
 
   /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
