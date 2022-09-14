@@ -18,7 +18,7 @@ final fromCsv = Dataframe.fromCsv(
     path: 'path/to/file.csv', 
     eolToken: '\n', 
     maxRows: 40,
-    skipColumns: ['date'],
+    skipColumns: ['some-irrelevant-column'],
     convertDates: true,
     datePattern: 'dd-MM-yyyy'
 );

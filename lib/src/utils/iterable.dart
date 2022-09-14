@@ -7,7 +7,7 @@ extension IterableExtensions<E> on Iterable<E> {
       whereIndexed((index, _) => mask[index]);
 }
 
-extension IterableIterableExtensions<E> on Iterable<Iterable<E>>{
+extension IterableIterableExtensions<E> on Iterable<Iterable<E>> {
   List<List<E>> transposed() =>
       IterableZip(this).map((e) => e.toList()).toList();
 }

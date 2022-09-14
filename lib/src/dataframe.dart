@@ -245,15 +245,12 @@ class DataFrame extends ExtendedListBase<RecordRow> {
     return Column(column.toList());
   }
 
-  DataFrame fromColumns(List<String> columnNames) =>
-    DataFrame._copied(
-        PositionTrackingList(columnNames),
-        columnNames.map((e) => this(e)).transposed()
-    );
+  DataFrame fromColumns(List<String> columnNames) => DataFrame._copied(
+      PositionTrackingList(columnNames),
+      columnNames.map((e) => this(e)).transposed());
 
   /// Returns an iterable over the column data.
-  Iterable<Column> columns() => 
-      _columnNames.map((e) => this(e));
+  Iterable<Column> columns() => _columnNames.map((e) => this(e));
 
   /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
   T record<T>(int rowIndex, String colName) =>
@@ -263,7 +260,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
       DataFrame._copied(_columnNames, indices.map((e) => this[e]).toList());
 
   DataFrame rowsWhere(List<bool> mask) =>
-    DataFrame._copied(_columnNames, applyMask(mask).toList());
+      DataFrame._copied(_columnNames, applyMask(mask).toList());
 
   // **************** manipulation ******************
 
@@ -355,7 +352,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   DataFrame sortedBy(String colName,
           {bool ascending = true,
           bool nullsFirst = true,
-            Comparator<Record>? compareRecords}) =>
+          Comparator<Record>? compareRecords}) =>
       DataFrame._copied(
         _columnNames,
         _sort(colName,

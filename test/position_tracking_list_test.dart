@@ -2,8 +2,8 @@ import 'package:koala/src/list_extensions/position_tracking_list.dart';
 import 'package:koala/src/utils/list.dart';
 import 'package:test/test.dart';
 
-void main(){
-  test('PositionTrackingList', (){
+void main() {
+  test('PositionTrackingList', () {
     final rawColumns = ['a', 'b', 'c'];
 
     final columns = PositionTrackingList(copy1D(rawColumns));
