@@ -3,7 +3,11 @@ import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 
 void main(){
-  final column = Column([1, 3, 7, null, 2, 0, 87, 34, 3, null]);
+  final column = Column<int?>([1, 3, 7, null, 2, 0, 87, 34, 3, null]);
+
+  test('casting', (){
+    expect(column.cast<num?>().runtimeType.toString(), 'Column<num?>');
+  });
 
   test('counting', (){
     expect(column.count(3), 2);
@@ -11,13 +15,13 @@ void main(){
   });
 
   test('null freeing', (){
-    expect(column.nullFreed(), Column([1, 3, 7, 2, 0, 87, 34, 3]));
-    expect(column.nullFreed(replaceWith: 420), Column([1, 3, 7, 420, 2, 0, 87, 34, 3, 420]));
+    expect(column.nullFree(), Column([1, 3, 7, 2, 0, 87, 34, 3]));
+    expect(column.nullFree(replaceWith: 420), Column([1, 3, 7, 420, 2, 0, 87, 34, 3, 420]));
   });
 
   test('.cumSum', (){
-    expect(column.cumSum(treatNullsAsZeros: true), Column([1, 4, 11, 11, 13, 13, 100, 134, 137, 137]));
-    expect(column.cumSum(treatNullsAsZeros: false), Column([1, 4, 11, 13, 13, 100, 134, 137]));
+    expect(column.cumulativeSum(treatNullsAsZeros: true), Column([1, 4, 11, 11, 13, 13, 100, 134, 137, 137]));
+    expect(column.cumulativeSum(treatNullsAsZeros: false), Column([1, 4, 11, 13, 13, 100, 134, 137]));
   });
 
   test('accumulation', (){
@@ -35,7 +39,7 @@ void main(){
     expect(column.isNotIn({2, 7, 87}), [true, true, false, true, false, true, false, true, true, true]);
     expect(column.maskFrom((p0) => p0 == null ? true : p0.isEven), [false, false, false, true, true, true, false, true, false, true]);
 
-    final nullFreed = column.nullFreed(replaceWith: 97);
+    final nullFreed = column.nullFree(replaceWith: 97);
     expect(nullFreed > 20, [false, false, false, true, false, false, true, true, false, true]);
     expect(nullFreed < 20, [true, true, true, false, true, true, false, false, true, false]);
     expect(nullFreed >= 20, [false, false, false, true, false, false, true, true, false, true]);
