@@ -205,8 +205,8 @@ void main() {
     expect(() => df('nonExistent'), throwsArgumentError);
 
     // typing
-    expect(df('col1').runtimeType.toString(), 'List<dynamic>');
-    expect(df<int?>('col1').runtimeType.toString(), 'List<int?>');
+    expect(df('col1').runtimeType.toString(), 'Column<dynamic>');
+    expect(df<int?>('col1').runtimeType.toString(), 'Column<int?>');
 
     // columnIterable
     expect(df.columns().toList(), [
@@ -214,7 +214,7 @@ void main() {
       [2, 1, 8]
     ]);
 
-    df.rowsWhere((df('col1') > 6) & (df('col2') <= 5));
+    // df.rowsWhere((df('col1') > 6) & (df('col2') <= 5));
 
     // record
     expect(df.record(2, 'col1'), null);
@@ -238,7 +238,7 @@ void main() {
   test('numerical column extensions', () async {
     final df = _getDF();
     expect(df<int?>('col1').mean(treatNullsAsZeros: false), 1.0);
-    expect(df<int?>('col1').mean(treatNullsAsZeros: true), 2 / 3);
+    expect(df<int?>('col1').mean(treatNullsAsZeros: true), closeTo(2 / 3, 1e-6));
     expect(df<int?>('col1').cumSum(), [1, 2]);
   });
 

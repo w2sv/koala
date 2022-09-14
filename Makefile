@@ -2,7 +2,7 @@ SHELL=/bin/bash
 
 # $$$$$$$$$ Testing $$$$$$$$$$
 
-test-and-show-coverage: test coverage-html
+test-and-show-coverage: run-tests coverage-html
 
 run-tests:
 	dart pub global activate coverage
@@ -10,11 +10,11 @@ run-tests:
 
 coverage-html:
 	genhtml coverage/lcov.info -o coverage/html
-	firefox coverage/html/index.html
+	open coverage/html/index.html
 
-# $$$$$$$$$ Releasing $$$$$$$$$$
+# $$$$$$$$$ Publishing $$$$$$$$$$
 
-pre-release:
+pre-publish:
 	dart format lib
 	dart analyze
 	dart pub publish --dry-run
@@ -23,5 +23,5 @@ patch-version:
 	dart pub global activate pubversion
 	pubversion patch
 
-release:
+publish:
 	dart pub publish
