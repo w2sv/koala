@@ -1,6 +1,6 @@
 import 'package:collection/collection.dart';
 
-import 'list_extensions/extended_list_base.dart';
+import 'utils/list_base.dart';
 
 typedef Mask = List<bool>;
 
@@ -15,7 +15,7 @@ extension MaskExtensions on Mask {
       IterableZip([this, other]).map((e) => e.first ^ e.last).toList();
 }
 
-class Column<E> extends ExtendedListBase<E> {
+class Column<E> extends ListBase<E> {
   Column(List<E> records) : super(records);
 
   Column<T> cast<T>() => Column(super.cast<T>());

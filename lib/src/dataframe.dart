@@ -7,10 +7,10 @@ import 'package:csv/csv.dart';
 import 'package:jiffy/jiffy.dart';
 
 import 'column.dart';
-import 'list_extensions/extended_list_base.dart';
-import 'list_extensions/position_tracking_list.dart';
-import 'utils/iterable.dart';
-import 'utils/list.dart';
+import 'utils/list_base.dart';
+import 'utils/element_position_tracking_list.dart';
+import 'utils/extensions/iterable.dart';
+import 'utils/extensions/list.dart';
 
 typedef Record = Object?;
 typedef RecordRowMap = Map<String, Record>;
@@ -25,15 +25,15 @@ typedef DataMatrix = List<RecordRow>;
 ///
 /// Row access is granted through regular indexing, as DataFrame extends the data matrix of shape (rows x columns).
 /// Columns may be accessed via dataframe('columnName').
-class DataFrame extends ExtendedListBase<RecordRow> {
-  final PositionTrackingList<String> _columnNames;
+class DataFrame extends ListBase<RecordRow> {
+  final ElementPositionTrackingList<String> _columnNames;
 
   // ************ constructors ****************
 
   /// Build a dataframe from specified [columnNames] and [data].
   /// The [data] is expected to be of the shape (rows x columns).
   DataFrame.fromNamesAndData(List<String> columnNames, DataMatrix data)
-      : this._columnNames = PositionTrackingList(columnNames),
+      : this._columnNames = ElementPositionTrackingList(columnNames),
         super(data) {
     if (data.isEmpty) {
       throw ArgumentError(
@@ -49,12 +49,12 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// [{'col1': 420, 'col2': 69},
   ///  {'col1': 666, 'col2': 1470}]
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
-      : this._columnNames = PositionTrackingList(rowMaps.first.keys.toList()),
+      : this._columnNames = ElementPositionTrackingList(rowMaps.first.keys.toList()),
         super(rowMaps.map((e) => e.values.toList()).toList());
 
   /// Returns an empty dataframe.
   DataFrame.empty()
-      : this._columnNames = PositionTrackingList([]),
+      : this._columnNames = ElementPositionTrackingList([]),
         super([]);
 
   /// Build a dataframe from csv data.
@@ -246,7 +246,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   }
 
   DataFrame fromColumns(List<String> columnNames) => DataFrame._copied(
-      PositionTrackingList(columnNames),
+      ElementPositionTrackingList(columnNames),
       columnNames.map((e) => this(e)).transposed());
 
   /// Returns an iterable over the column data.
@@ -322,9 +322,9 @@ class DataFrame extends ExtendedListBase<RecordRow> {
   /// Returns a deep copy of the dataframe.
   DataFrame copy() => DataFrame._copied(_columnNames, this);
 
-  DataFrame._copied(PositionTrackingList<String> columns, DataMatrix data)
+  DataFrame._copied(ElementPositionTrackingList<String> columns, DataMatrix data)
       : this._columnNames = columns.copy(),
-        super(copy2D(data));
+        super(ListListExtensions(data).copy());
 
   // ************** slicing ****************
 
@@ -381,7 +381,7 @@ class DataFrame extends ExtendedListBase<RecordRow> {
       required bool nullsFirst,
       required Comparator<Record>? compareRecords}) {
     final index = columnIndex(colName);
-    return (inPlace ? this : copy2D(this))
+    return (inPlace ? this : ListListExtensions(this).copy())
       ..sort((a, b) => _compareRecords(
           a[index], b[index], ascending, nullsFirst, compareRecords));
   }

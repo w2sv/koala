@@ -1,4 +1,4 @@
-import 'package:koala/src/utils/iterable.dart';
+import 'package:koala/src/utils/extensions/iterable.dart';
 import 'package:test/expect.dart';
 import 'package:test/scaffolding.dart';
 

@@ -1,22 +1,16 @@
-import 'package:koala/src/utils/map.dart';
+import 'list_base.dart';
+import 'extensions/list.dart';
 
-import 'extended_list_base.dart';
-import '../utils/list.dart';
-
-extension<T> on List<T> {
-  Map<T, int> asInvertedMap() => asMap().inverted();
-}
-
-/// List keeping tracking of element indices by storing them
-/// in a map
-class PositionTrackingList<T> extends ExtendedListBase<T> {
+/// List keeping track of element indices by storing them
+/// in a map and updating them upon list mutation
+class ElementPositionTrackingList<T> extends ListBase<T> {
   Map<T, int> _object2Index;
 
-  PositionTrackingList(List<T> elements)
+  ElementPositionTrackingList(List<T> elements)
       : _object2Index = elements.asInvertedMap(),
         super(elements);
 
-  PositionTrackingList<T> copy() => PositionTrackingList(copy1D(this));
+  ElementPositionTrackingList<T> copy() => ElementPositionTrackingList(ListExtensions(this).copy());
 
   // *************** overrides *******************
 

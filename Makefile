@@ -17,6 +17,7 @@ coverage-html:
 pre-publish:
 	dart format lib
 	dart analyze
+	dart doc
 	dart pub publish --dry-run
 
 patch-version:
@@ -25,3 +26,4 @@ patch-version:
 
 publish:
 	dart pub publish
+	gh release create
