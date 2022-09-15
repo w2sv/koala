@@ -18,9 +18,9 @@ DataFrame _getDF() => DataFrame.fromRowMaps([
 void main() {
   group('constructors', (){
     test('default', () {
-      expect(() => DataFrame(['b'], []), throwsArgumentError);
+      expect(() => DataFrame.fromNamesAndData(['b'], []), throwsArgumentError);
       expect(
-              () => DataFrame([
+              () => DataFrame.fromNamesAndData([
             'b'
           ], [
             [888, 1]
@@ -150,7 +150,7 @@ void main() {
         '2 | null 8   ');
 
     final df_with_longer_elements_than_column_names =
-        DataFrame([
+        DataFrame.fromNamesAndData([
       'a',
       'b'
     ], [
@@ -170,7 +170,7 @@ void main() {
           ..slice(0, 30);
     expect(df.length, 30);
 
-    final sliced = df.sliced(5, 25);
+    final sliced = df.sliced(5, end: 25);
     expect(sliced.length, 20);
 
     // Ensure disentanglement of copied properties
@@ -213,7 +213,7 @@ void main() {
   });
 
   test('data access', () {
-    final df = DataFrame(
+    final df = DataFrame.fromNamesAndData(
         ['a', 'b', 'c'], 
         [
           [43, 'omg', null],
@@ -254,7 +254,7 @@ void main() {
 
     // .withColumns + .sliced
     expect(
-        df.withColumns(['a', 'b']).sliced(1, 3).toString(),
+        df.withColumns(['a', 'b']).sliced(1, end: 3).toString(),
             '    a   b         \n'
             '0 | 701           \n'
             '1 | -9  ubiquitous'
@@ -342,7 +342,7 @@ void main() {
   group('.toCsv', () {
     test('default', () async {
       final outputCsvPath = outputFilePath('out.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -358,7 +358,7 @@ void main() {
 
     test('with null', () async {
       final outputCsvPath = outputFilePath('out1.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -382,7 +382,7 @@ void main() {
 
     test('with single quote including strings', () async {
       final outputCsvPath = outputFilePath('out3.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -398,7 +398,7 @@ void main() {
 
     test('without header', () async {
       final outputCsvPath = outputFilePath('out4.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'

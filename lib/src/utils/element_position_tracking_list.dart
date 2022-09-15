@@ -16,6 +16,10 @@ class ElementPositionTrackingList<T> extends ListBase<T> {
   // *************** overrides *******************
 
   @override
+  bool contains(Object? element) =>
+      _object2Index.containsKey(element);
+
+  @override
   void add(T element) {
     super.add(element);
     _object2Index[element] = length - 1;
