@@ -10,7 +10,7 @@ class ElementPositionTrackingList<E> extends ListBase<E> {
       : _object2Index = elements.asInvertedMap(),
         super(elements);
 
-  void _reassignObject2Index(){
+  void _reassignObject2Index() {
     _object2Index = asInvertedMap();
   }
 
@@ -36,11 +36,9 @@ class ElementPositionTrackingList<E> extends ListBase<E> {
   }
 
   @override
-  int indexOf(Object? element, [int? start]) =>
-      _object2Index[element]!;
+  int indexOf(Object? element, [int? start]) => _object2Index[element]!;
 
   /// Forwards to [_object2Index] for faster retrieval
   @override
-  bool contains(Object? element) =>
-      _object2Index.containsKey(element);
+  bool contains(Object? element) => _object2Index.containsKey(element);
 }

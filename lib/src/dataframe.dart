@@ -33,7 +33,8 @@ class DataFrame extends ListBase<RecordRow> {
 
   /// Build a dataframe from specified [columnNames] and [data].
   /// The [data] is expected to be of the shape (rows x columns).
-  factory DataFrame.fromNamesAndData(List<String> columnNames, DataMatrix data){
+  factory DataFrame.fromNamesAndData(
+      List<String> columnNames, DataMatrix data) {
     if (data.isEmpty) {
       throw ArgumentError(
           'Did not receive any data; Use DataFrame.empty() to create an empty DataFrame');
@@ -49,14 +50,11 @@ class DataFrame extends ListBase<RecordRow> {
   /// [{'col1': 420, 'col2': 69},
   ///  {'col1': 666, 'col2': 1470}]
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
-      : this._default(
-      rowMaps.first.keys.toList(), 
-      rowMaps.map((e) => e.values.toList()).toList()
-  );
+      : this._default(rowMaps.first.keys.toList(),
+            rowMaps.map((e) => e.values.toList()).toList());
 
   /// Returns an empty dataframe.
-  DataFrame.empty()
-      : this._default([], []);
+  DataFrame.empty() : this._default([], []);
 
   DataFrame._default(List<String> columnNames, DataMatrix data)
       : this._trackedColumnNames = ElementPositionTrackingList(columnNames),
@@ -223,10 +221,10 @@ class DataFrame extends ListBase<RecordRow> {
 
   /// Returns the number of columns currently held by the instance.
   int get nColumns => columnNames.length;
-  
+
   List<String> get columnNames => _trackedColumnNames.l;
 
-  /// Returns an unmodifiable list of [nRows, nColumns]
+  /// Returns an unmodifiable list of nRows, nColumns
   List<int> get shape => List.unmodifiable([length, nColumns]);
 
   /// Accesses column index in O(1)
@@ -265,22 +263,24 @@ class DataFrame extends ListBase<RecordRow> {
   ///
   /// [asView] set to true leads to a view of the current data being returned, otherwise
   /// a copy will be returned.
-  DataFrame head({int nRows = 5, bool asView = true}) =>
-      _viewOrCopy(_trackedColumnNames.l, getRange(0, min(nRows, length)).toList(), asView);
+  DataFrame head({int nRows = 5, bool asView = true}) => _viewOrCopy(
+      _trackedColumnNames.l, getRange(0, min(nRows, length)).toList(), asView);
 
   /// Returns a [DataFrame] comprised of a subset of present columns specified by [columnNames].
   ///
   /// [asView] set to true leads to a view of the current data being returned, otherwise
   /// a copy will be returned.
   DataFrame withColumns(List<String> columnNames, {bool asView = true}) =>
-      _viewOrCopy(columnNames, columnNames.map((e) => this(e)).transposed(), asView);
+      _viewOrCopy(
+          columnNames, columnNames.map((e) => this(e)).transposed(), asView);
 
   /// Returns a [DataFrame] composed of the rows specified through [indices].
   ///
   /// [asView] set to true leads to a view of the current data being returned, otherwise
   /// a copy will be returned.
   DataFrame multiIndexed(Iterable<int> indices, {bool asView = true}) =>
-    _viewOrCopy(_trackedColumnNames.l, indices.map((e) => this[e]).toList(), asView);
+      _viewOrCopy(
+          _trackedColumnNames.l, indices.map((e) => this[e]).toList(), asView);
 
   /// Returns a [mask]ed [DataFrame].
   ///
@@ -295,9 +295,12 @@ class DataFrame extends ListBase<RecordRow> {
   /// a copy will be returned.
   DataFrame sliced({int start = 0, int? end, bool asView = true}) =>
       _viewOrCopy(columnNames, getRange(start, end ?? length).toList(), asView);
-  
-  DataFrame _viewOrCopy(List<String> columnNames, DataMatrix data, bool asView) =>
-      asView ? DataFrame._default(columnNames, data) : _copied(columnNames, data);
+
+  DataFrame _viewOrCopy(
+          List<String> columnNames, DataMatrix data, bool asView) =>
+      asView
+          ? DataFrame._default(columnNames, data)
+          : _copied(columnNames, data);
 
   // **************** manipulation ******************
 
@@ -330,7 +333,8 @@ class DataFrame extends ListBase<RecordRow> {
   }
 
   /// Transform the values corresponding to [name] as per [transformElement] in-place.
-  void transformColumn(String name, dynamic Function(dynamic element) transformElement) {
+  void transformColumn(
+      String name, dynamic Function(dynamic element) transformElement) {
     columnAsIterable(name).forEachIndexed((i, element) {
       this[i][columnIndex(name)] = transformElement(element);
     });
@@ -438,7 +442,7 @@ class DataFrame extends ListBase<RecordRow> {
 
   // ************* Object overrides ******************
 
-  /// Returns hashCode accounting for both the [_data] and [_trackedColumnNames]
+  /// Returns hashCode accounting for both the data and [_trackedColumnNames]
   @override
   int get hashCode => l.hashCode + _trackedColumnNames.hashCode;
 
