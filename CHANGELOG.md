@@ -12,11 +12,21 @@ Add `toCsv` method. Improve method documentation. Remove the rather pointless `s
 
 # 0.1.0
 
-- Add `shape` property, `columnIterable`, `withColumns`, `rowsAt`, `rowsWhere`
+- Add `shape` property & `columnIterable`, `withColumns`, `multiIndexed`, `masked`
 - Incorporate `Column` class being returned upon accessing a `DataFrame` column, alongside methods for
   - transformation: `cumulativeSum`
   - accumulation: `mean`, `max`, `min`, `sum`
   - counting: `count`, `countElementOccurrencesOf`
   - null-ridding: `nullFree`, `nullFreeIterable`
-  - mask conversion: `equals`, `unequals`, `isIn`, `isNotIn`, `maskFrom`; operators: `<`, `>`, `<=`, `>=`
-- Enable conditional rows selection based on columns, e.g. `final filteredDf = df.rowsWhere((df('a') > 7) & df('b').equals(null))`
+  - mask conversion: `eq`, `neq`, `isIn`, `isNotIn`, `maskFrom`, `gt`, `lt`, `geq`, `leq`
+- Enable conditional rows selection based on columns, e.g. 
+  ```dart
+  final filteredDf = df.masked(df('a').lt(7) & (df('b').eq(null) | df('c').isIn({'super', 'sick', ',', 'brother'})));
+  ```
+  
+# 0.1.1
+
+- Make `shape` an unmodifiable List
+- Add `head` method
+- Make the `start` and `end` parameters of `slice` and `sliced` keyword parameters
+- Add `asView` parameter to non-constructor methods returning a `DataFrame`, to allow for determining whether a view of the current data, or a copy of it should be returned

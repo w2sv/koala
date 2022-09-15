@@ -10,14 +10,11 @@ class ElementPositionTrackingList<E> extends ListBase<E> {
       : _object2Index = elements.asInvertedMap(),
         super(elements);
 
-  ElementPositionTrackingList<E> copy() =>
-      ElementPositionTrackingList(ListExtensions(this).copy());
+  void _reassignObject2Index(){
+    _object2Index = asInvertedMap();
+  }
 
   // *************** overrides *******************
-
-  @override
-  bool contains(Object? element) =>
-      _object2Index.containsKey(element);
 
   @override
   void add(E element) {
@@ -28,17 +25,22 @@ class ElementPositionTrackingList<E> extends ListBase<E> {
   @override
   void addAll(Iterable<E> iterable) {
     super.addAll(iterable);
-    _object2Index = asInvertedMap();
+    _reassignObject2Index();
   }
 
   @override
   E removeAt(int index) {
     final removedElement = super.removeAt(index);
-    _object2Index = asInvertedMap();
+    _reassignObject2Index();
     return removedElement;
   }
 
   @override
   int indexOf(Object? element, [int? start]) =>
       _object2Index[element]!;
+
+  /// Forwards to [_object2Index] for faster retrieval
+  @override
+  bool contains(Object? element) =>
+      _object2Index.containsKey(element);
 }

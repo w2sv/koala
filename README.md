@@ -45,7 +45,7 @@ final secondRow = df[1];
 final bColumn = df('b');
 final typedBColumn = df<double?>('b');
 final slicedBColumn = df('b', start: 1, end: 5);
-final filteredBColumn = df('b', includeRecord: (el) => el > 7);
+final filteredBColumn = df.columnAsIterable('b').where((el) => el > 7).toList();
 
 // grab a singular record
 final record = df.record<int>(3, 'b');
@@ -69,8 +69,8 @@ Copy or slice the `DataFrame`
 
 ```dart
 final copy = df.copy();
-final sliced = df.sliced(30, 60);   
-df.slice(10, 15);  // in-place counterpart
+final sliced = df.sliced(start: 30, end: 60);   
+df.slice(start: 10, end: 15);  // in-place counterpart
 ```
 
 Sort the `DataFrame` in-place or get a sorted copy of it

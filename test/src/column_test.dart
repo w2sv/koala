@@ -37,13 +37,13 @@ void main(){
     expect(column.neq(3), [true, false, true, true, true, true, true, true, false, true]);
     expect(column.isIn({2, 7, 87}), [false, false, true, false, true, false, true, false, false, false]);
     expect(column.isNotIn({2, 7, 87}), [true, true, false, true, false, true, false, true, true, true]);
-    expect(column.getMask((p0) => p0 == null ? true : p0.isEven), [false, false, false, true, true, true, false, true, false, true]);
+    expect(column.maskFrom((p0) => p0 == null ? true : p0.isEven), [false, false, false, true, true, true, false, true, false, true]);
 
     final nullFreed = column.nullFree(replaceWith: 97);
-    expect(nullFreed.lt(20), [false, false, false, true, false, false, true, true, false, true]);
-    expect(nullFreed.st(20), [true, true, true, false, true, true, false, false, true, false]);
-    expect(nullFreed.leq(20), [false, false, false, true, false, false, true, true, false, true]);
-    expect(nullFreed.seq(20), [true, true, true, false, true, true, false, false, true, false]);
+    expect(nullFreed.gt(20), [false, false, false, true, false, false, true, true, false, true]);
+    expect(nullFreed.lt(20), [true, true, true, false, true, true, false, false, true, false]);
+    expect(nullFreed.geq(20), [false, false, false, true, false, false, true, true, false, true]);
+    expect(nullFreed.leq(20), [true, true, true, false, true, true, false, false, true, false]);
   });
   
   test('mask concatenations', (){

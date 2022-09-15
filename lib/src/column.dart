@@ -81,24 +81,24 @@ class Column<E> extends ListBase<E> {
       map((element) => !pool.contains(element)).toList().cast<bool>();
 
   /// Get a [Mask] by mapping [test] to the column records.
-  Mask getMask(bool Function(E) test) => map(test).toList().cast<bool>();
+  Mask maskFrom(bool Function(E) test) => map(test).toList().cast<bool>();
 
   // ****************** numerical column masks *********************
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask st(num reference) =>
+  Mask lt(num reference) =>
       cast<num>().map((element) => element < reference).toList().cast<bool>();
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask lt(num reference) =>
-      cast<num>().map((element) => element > reference).toList().cast<bool>();
-
-  /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask seq(num reference) =>
+  Mask leq(num reference) =>
       cast<num>().map((element) => element <= reference).toList().cast<bool>();
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask leq(num reference) =>
+  Mask gt(num reference) =>
+      cast<num>().map((element) => element > reference).toList().cast<bool>();
+
+  /// Requires the column records type to be a subtype of num (i.e. non-null!)
+  Mask geq(num reference) =>
       cast<num>().map((element) => element >= reference).toList().cast<bool>();
 }
 

@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
 import 'package:jiffy/jiffy.dart';
-import 'package:koala/koala.dart';
 
 import 'column.dart';
-import 'utils/list_base.dart';
 import 'utils/element_position_tracking_list.dart';
 import 'utils/extensions/iterable.dart';
 import 'utils/extensions/list.dart';
+import 'utils/list_base.dart';
 
 typedef Record = Object?;
 typedef RecordRowMap = Map<String, Record>;
@@ -61,6 +61,8 @@ class DataFrame extends ListBase<RecordRow> {
   DataFrame._default(List<String> columnNames, DataMatrix data)
       : this._trackedColumnNames = ElementPositionTrackingList(columnNames),
         super(data);
+
+  // ***************** from/toCsv *****************
 
   /// Build a dataframe from csv data.
   ///
@@ -217,11 +219,15 @@ class DataFrame extends ListBase<RecordRow> {
         encoding: encoding);
   }
 
-  // ************** column names ***************
+  // ************** structure ***************
 
+  /// Returns the number of columns currently held by the instance.
+  int get nColumns => columnNames.length;
+  
   List<String> get columnNames => _trackedColumnNames.l;
 
-  int get nColumns => columnNames.length;
+  /// Returns an unmodifiable list of [nRows, nColumns]
+  List<int> get shape => List.unmodifiable([length, nColumns]);
 
   /// Accesses column index in O(1)
   int columnIndex(String colName) {
@@ -232,20 +238,17 @@ class DataFrame extends ListBase<RecordRow> {
     }
   }
 
-  /// Returns a list of [nRows, nColumns]
-  List<int> get shape => [length, nColumns];
-
   // ************* data access *****************
 
   /// Enables (typed) column access.
   ///
   /// If [start] and/or [end] are specified, the column will be sliced respectively.
   Column<T> call<T>(String colName, {int start = 0, int? end}) =>
-      Column(columnIterable<T>(colName, start: start, end: end).toList());
+      Column(columnAsIterable<T>(colName, start: start, end: end).toList());
 
   /// Returns an iterable over the records of a column sliced as per [start]
   /// and [end].
-  Iterable<T> columnIterable<T>(String colName, {int start = 0, int? end}) =>
+  Iterable<T> columnAsIterable<T>(String colName, {int start = 0, int? end}) =>
       sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
 
   /// Returns an iterable over the columns.
@@ -255,16 +258,43 @@ class DataFrame extends ListBase<RecordRow> {
   T record<T>(int rowIndex, String colName) =>
       this[rowIndex][columnIndex(colName)] as T;
 
-  /// Returns a [DataFrame] comprised of a subset of present columns
-  /// as specified by [columnNames]
+  // ************* view/copy yielding methods *****************
+
+  /// Returns a [DataFrame] consisting of the first [nRows] rows or less if the instance
+  /// holds less.
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame head({int nRows = 5, bool asView = true}) =>
+      _viewOrCopy(_trackedColumnNames.l, getRange(0, min(nRows, length)).toList(), asView);
+
+  /// Returns a [DataFrame] comprised of a subset of present columns specified by [columnNames].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
   DataFrame withColumns(List<String> columnNames, {bool asView = true}) =>
       _viewOrCopy(columnNames, columnNames.map((e) => this(e)).transposed(), asView);
 
-  DataFrame rowsAt(Iterable<int> indices, {bool asView = true}) =>
+  /// Returns a [DataFrame] composed of the rows specified through [indices].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame multiIndexed(Iterable<int> indices, {bool asView = true}) =>
     _viewOrCopy(_trackedColumnNames.l, indices.map((e) => this[e]).toList(), asView);
 
-  DataFrame rowsWhere(List<bool> mask, {bool asView = true}) =>
+  /// Returns a [mask]ed [DataFrame].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame masked(List<bool> mask, {bool asView = true}) =>
       _viewOrCopy(_trackedColumnNames.l, applyMask(mask).toList(), asView);
+
+  /// Returns a [DataFrame] whose rows have been sliced with respect to [start] & [end].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame sliced({int start = 0, int? end, bool asView = true}) =>
+      _viewOrCopy(columnNames, getRange(start, end ?? length).toList(), asView);
   
   DataFrame _viewOrCopy(List<String> columnNames, DataMatrix data, bool asView) =>
       asView ? DataFrame._default(columnNames, data) : _copied(columnNames, data);
@@ -301,7 +331,7 @@ class DataFrame extends ListBase<RecordRow> {
 
   /// Transform the values corresponding to [name] as per [transformElement] in-place.
   void transformColumn(String name, dynamic Function(dynamic element) transformElement) {
-    columnIterable(name).forEachIndexed((i, element) {
+    columnAsIterable(name).forEachIndexed((i, element) {
       this[i][columnIndex(name)] = transformElement(element);
     });
   }
@@ -310,6 +340,12 @@ class DataFrame extends ListBase<RecordRow> {
   /// to the end of the dataframe.
   void addRowFromMap(RecordRowMap rowMap) =>
       add([for (final name in _trackedColumnNames) rowMap[name]]);
+
+  /// Row-slice instance in-place.
+  void slice({int start = 0, int? end}) {
+    if (start != 0) removeRange(0, start);
+    if (end != null) removeRange(end, length);
+  }
 
   // ************ map representations *************
 
@@ -330,18 +366,6 @@ class DataFrame extends ListBase<RecordRow> {
 
   DataFrame _copied(List<String> names, DataMatrix data) =>
       DataFrame._default(names.copy(), data.copy());
-
-  // ************** slicing ****************
-
-  /// Returns a new, row-sliced instance.
-  DataFrame sliced(int start, {int? end, bool asView = true}) =>
-      _viewOrCopy(columnNames, sublist(start, end), asView);
-
-  /// Row-slice instance in-place.
-  void slice(int start, [int? end]) {
-    if (start != 0) removeRange(0, start);
-    if (end != null) removeRange(end, length);
-  }
 
   // **************** sorting ****************
 
