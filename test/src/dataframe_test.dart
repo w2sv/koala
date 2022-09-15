@@ -18,9 +18,9 @@ DataFrame _getDF() => DataFrame.fromRowMaps([
 void main() {
   group('constructors', (){
     test('default', () {
-      expect(() => DataFrame(['b'], []), throwsArgumentError);
+      expect(() => DataFrame.fromNamesAndData(['b'], []), throwsArgumentError);
       expect(
-              () => DataFrame([
+              () => DataFrame.fromNamesAndData([
             'b'
           ], [
             [888, 1]
@@ -150,7 +150,7 @@ void main() {
         '2 | null 8   ');
 
     final df_with_longer_elements_than_column_names =
-        DataFrame([
+        DataFrame.fromNamesAndData([
       'a',
       'b'
     ], [
@@ -167,16 +167,32 @@ void main() {
   test('slicing', () async {
     DataFrame df =
         (await DataFrame.fromCsv(path: csvPath('stocks.csv'), eolToken: '\n'))
-          ..slice(0, 30);
+          ..slice(end: 30);
     expect(df.length, 30);
 
-    final sliced = df.sliced(5, 25);
-    expect(sliced.length, 20);
+    final slicedAsCopy = df.sliced(end: 20, asView: false);
+    expect(slicedAsCopy.length, 20);
 
     // Ensure disentanglement of copied properties
     expect(df.length, 30);
-    sliced.removeColumn('symbol');
+
+    slicedAsCopy.removeColumn('symbol');
     expect(df.columnNames, ['symbol', 'date', 'price']);
+
+    final slicedAsView = df.sliced(end: 20, asView: true);
+    expect(slicedAsView.length, 20);
+
+    slicedAsView.removeColumn('symbol');
+    expect(df.columnNames, ['date', 'price']);
+
+    slicedAsView.removeLast();
+    expect(slicedAsView.length, 19);
+    expect(df.length, 30);
+
+    expect(df.first.first, 'Jan 1 2000');
+
+    slicedAsView[0][0] = 'Holla die Waldfee!';
+    expect(df[0][0], 'Holla die Waldfee!');
   });
 
   test('manipulation', () async {
@@ -213,7 +229,7 @@ void main() {
   });
 
   test('data access', () {
-    final df = DataFrame(
+    final df = DataFrame.fromNamesAndData(
         ['a', 'b', 'c'], 
         [
           [43, 'omg', null],
@@ -233,7 +249,7 @@ void main() {
     expect(df<int?>('a').runtimeType.toString(), 'Column<int?>');
 
     // .columnIterable
-    expect(df.columnIterable('a').toList(), [43, 701, -9, -32]);
+    expect(df.columnAsIterable('a').toList(), [43, 701, -9, -32]);
 
     // .columns
     expect(df.columns().toList(), [
@@ -254,35 +270,43 @@ void main() {
 
     // .withColumns + .sliced
     expect(
-        df.withColumns(['a', 'b']).sliced(1, 3).toString(),
+        df.withColumns(['a', 'b']).sliced(start: 1, end: 3).toString(),
             '    a   b         \n'
             '0 | 701           \n'
             '1 | -9  ubiquitous'
     );
 
-    // .rowsAt
-    expect(df.rowsAt([0, 1, 3]).toString(),
+    // .multiIndexed
+    expect(df.multiIndexed([0, 1, 3]).toString(),
         '    a   b    c   \n'
         '0 | 43  omg  null\n'
         '1 | 701      75.3\n'
         '2 | -32 noob -0.7');
-    expect(df.rowsAt([3, 1, 0]).toString(),
+    expect(df.multiIndexed([3, 1, 0]).toString(),
         '    a   b    c   \n'
         '0 | -32 noob -0.7\n'
         '1 | 701      75.3\n'
         '2 | 43  omg  null');
 
-    // .rowsWhere
-    expect(df.rowsWhere([true, false, false, true]).toString(),
+    // .masked
+    expect(df.masked([true, false, false, true]).toString(),
         '    a   b    c   \n'
         '0 | 43  omg  null\n'
         '1 | -32 noob -0.7');
-    expect(df.rowsWhere((df('a') < 0) | df<String>('b').maskFrom((el) => el.length > 0)).toString(),
+    expect(df.masked(df('a').lt(0) | df<String>('b').maskFrom((el) => el.length > 0)).toString(),
         '    a   b          c    \n'
         '0 | 43  omg        null \n'
         '1 | -9  ubiquitous 101.8\n'
         '2 | -32 noob       -0.7 '
     );
+
+    // .head
+    expect(df.head().toString(),
+        '    a   b          c    \n'
+        '0 | 43  omg        null \n'
+        '1 | 701            75.3 \n'
+        '2 | -9  ubiquitous 101.8\n'
+        '3 | -32 noob       -0.7 ');
 
     // .record
     expect(df.record(1, 'a'), 701);
@@ -342,7 +366,7 @@ void main() {
   group('.toCsv', () {
     test('default', () async {
       final outputCsvPath = outputFilePath('out.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -358,7 +382,7 @@ void main() {
 
     test('with null', () async {
       final outputCsvPath = outputFilePath('out1.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -382,7 +406,7 @@ void main() {
 
     test('with single quote including strings', () async {
       final outputCsvPath = outputFilePath('out3.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'
@@ -398,7 +422,7 @@ void main() {
 
     test('without header', () async {
       final outputCsvPath = outputFilePath('out4.csv');
-      final df = DataFrame([
+      final df = DataFrame.fromNamesAndData([
         'a',
         'b',
         'c'

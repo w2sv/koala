@@ -68,10 +68,10 @@ class Column<E> extends ListBase<E> {
 
   // ***************** masks *******************
 
-  Mask equals(E reference) =>
+  Mask eq(E reference) =>
       map((element) => element == reference).toList().cast<bool>();
 
-  Mask unequals(E reference) =>
+  Mask neq(E reference) =>
       map((element) => element != reference).toList().cast<bool>();
 
   Mask isIn(Set<E> pool) =>
@@ -86,19 +86,19 @@ class Column<E> extends ListBase<E> {
   // ****************** numerical column masks *********************
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask operator <(num reference) =>
+  Mask lt(num reference) =>
       cast<num>().map((element) => element < reference).toList().cast<bool>();
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask operator >(num reference) =>
-      cast<num>().map((element) => element > reference).toList().cast<bool>();
-
-  /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask operator <=(num reference) =>
+  Mask leq(num reference) =>
       cast<num>().map((element) => element <= reference).toList().cast<bool>();
 
   /// Requires the column records type to be a subtype of num (i.e. non-null!)
-  Mask operator >=(num reference) =>
+  Mask gt(num reference) =>
+      cast<num>().map((element) => element > reference).toList().cast<bool>();
+
+  /// Requires the column records type to be a subtype of num (i.e. non-null!)
+  Mask geq(num reference) =>
       cast<num>().map((element) => element >= reference).toList().cast<bool>();
 }
 

@@ -1,16 +1,17 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:collection/collection.dart';
 import 'package:csv/csv.dart';
 import 'package:jiffy/jiffy.dart';
 
 import 'column.dart';
-import 'utils/list_base.dart';
 import 'utils/element_position_tracking_list.dart';
 import 'utils/extensions/iterable.dart';
 import 'utils/extensions/list.dart';
+import 'utils/list_base.dart';
 
 typedef Record = Object?;
 typedef RecordRowMap = Map<String, Record>;
@@ -26,15 +27,14 @@ typedef DataMatrix = List<RecordRow>;
 /// Row access is granted through regular indexing, as DataFrame extends the data matrix of shape (rows x columns).
 /// Columns may be accessed via dataframe('columnName').
 class DataFrame extends ListBase<RecordRow> {
-  final ElementPositionTrackingList<String> _columnNames;
+  final ElementPositionTrackingList<String> _trackedColumnNames;
 
   // ************ constructors ****************
 
   /// Build a dataframe from specified [columnNames] and [data].
   /// The [data] is expected to be of the shape (rows x columns).
-  DataFrame(List<String> columnNames, DataMatrix data)
-      : this._columnNames = ElementPositionTrackingList(columnNames),
-        super(data) {
+  factory DataFrame.fromNamesAndData(
+      List<String> columnNames, DataMatrix data) {
     if (data.isEmpty) {
       throw ArgumentError(
           'Did not receive any data; Use DataFrame.empty() to create an empty DataFrame');
@@ -43,20 +43,24 @@ class DataFrame extends ListBase<RecordRow> {
       throw ArgumentError('Number of column names = ${columnNames.length} does '
           'not match number of data column = ${data.first.length}');
     }
+    return DataFrame._default(columnNames, data);
   }
 
   /// Builds a dataframe from a list of [rowMaps], e.g.
   /// [{'col1': 420, 'col2': 69},
   ///  {'col1': 666, 'col2': 1470}]
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
-      : this._columnNames =
-            ElementPositionTrackingList(rowMaps.first.keys.toList()),
-        super(rowMaps.map((e) => e.values.toList()).toList());
+      : this._default(rowMaps.first.keys.toList(),
+            rowMaps.map((e) => e.values.toList()).toList());
 
   /// Returns an empty dataframe.
-  DataFrame.empty()
-      : this._columnNames = ElementPositionTrackingList([]),
-        super([]);
+  DataFrame.empty() : this._default([], []);
+
+  DataFrame._default(List<String> columnNames, DataMatrix data)
+      : this._trackedColumnNames = ElementPositionTrackingList(columnNames),
+        super(data);
+
+  // ***************** from/toCsv *****************
 
   /// Build a dataframe from csv data.
   ///
@@ -141,7 +145,7 @@ class DataFrame extends ListBase<RecordRow> {
     }
 
     // instantiate DataFrame
-    final df = DataFrame(columnNames, fields);
+    final df = DataFrame.fromNamesAndData(columnNames, fields);
 
     // skip columns if required
     if (skipColumns != null) {
@@ -165,7 +169,7 @@ class DataFrame extends ListBase<RecordRow> {
 
     // attempt to convert dates if required
     if (convertDates) {
-      for (final name in df._columnNames) {
+      for (final name in df._trackedColumnNames) {
         try {
           df.transformColumn(
               name,
@@ -213,22 +217,24 @@ class DataFrame extends ListBase<RecordRow> {
         encoding: encoding);
   }
 
-  // ************** column names ***************
+  // ************** structure ***************
 
-  List<String> get columnNames => _columnNames;
+  /// Returns the number of columns currently held by the instance.
+  int get nColumns => columnNames.length;
 
-  int get nColumns => _columnNames.length;
+  List<String> get columnNames => _trackedColumnNames.l;
+
+  /// Returns an unmodifiable list of nRows, nColumns
+  List<int> get shape => List.unmodifiable([length, nColumns]);
 
   /// Accesses column index in O(1)
   int columnIndex(String colName) {
     try {
-      return _columnNames.indexOf(colName);
+      return _trackedColumnNames.indexOf(colName);
     } catch (_) {
       throw ArgumentError("Column named '$colName' not present in DataFrame");
     }
   }
-
-  List<int> get shape => [length, nColumns];
 
   // ************* data access *****************
 
@@ -236,34 +242,72 @@ class DataFrame extends ListBase<RecordRow> {
   ///
   /// If [start] and/or [end] are specified, the column will be sliced respectively.
   Column<T> call<T>(String colName, {int start = 0, int? end}) =>
-      Column(columnIterable<T>(colName, start: start, end: end).toList());
+      Column(columnAsIterable<T>(colName, start: start, end: end).toList());
 
-  Iterable<T> columnIterable<T>(String colName, {int start = 0, int? end}) =>
+  /// Returns an iterable over the records of a column sliced as per [start]
+  /// and [end].
+  Iterable<T> columnAsIterable<T>(String colName, {int start = 0, int? end}) =>
       sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
 
-  DataFrame withColumns(List<String> columnNames) => DataFrame._copied(
-      ElementPositionTrackingList(columnNames),
-      columnNames.map((e) => this(e)).transposed());
-
   /// Returns an iterable over the columns.
-  Iterable<Column> columns() => _columnNames.map((e) => this(e));
+  Iterable<Column> columns() => _trackedColumnNames.map(call);
 
   /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
   T record<T>(int rowIndex, String colName) =>
       this[rowIndex][columnIndex(colName)] as T;
 
-  DataFrame rowsAt(Iterable<int> indices) =>
-      DataFrame._copied(_columnNames, indices.map((e) => this[e]).toList());
+  // ************* view/copy yielding methods *****************
 
-  DataFrame rowsWhere(List<bool> mask) =>
-      DataFrame._copied(_columnNames, applyMask(mask).toList());
+  /// Returns a [DataFrame] consisting of the first [nRows] rows or less if the instance
+  /// holds less.
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame head({int nRows = 5, bool asView = true}) => _viewOrCopy(
+      _trackedColumnNames.l, getRange(0, min(nRows, length)).toList(), asView);
+
+  /// Returns a [DataFrame] comprised of a subset of present columns specified by [columnNames].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame withColumns(List<String> columnNames, {bool asView = true}) =>
+      _viewOrCopy(
+          columnNames, columnNames.map((e) => this(e)).transposed(), asView);
+
+  /// Returns a [DataFrame] composed of the rows specified through [indices].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame multiIndexed(Iterable<int> indices, {bool asView = true}) =>
+      _viewOrCopy(
+          _trackedColumnNames.l, indices.map((e) => this[e]).toList(), asView);
+
+  /// Returns a [mask]ed [DataFrame].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame masked(List<bool> mask, {bool asView = true}) =>
+      _viewOrCopy(_trackedColumnNames.l, applyMask(mask).toList(), asView);
+
+  /// Returns a [DataFrame] whose rows have been sliced with respect to [start] & [end].
+  ///
+  /// [asView] set to true leads to a view of the current data being returned, otherwise
+  /// a copy will be returned.
+  DataFrame sliced({int start = 0, int? end, bool asView = true}) =>
+      _viewOrCopy(columnNames, getRange(start, end ?? length).toList(), asView);
+
+  DataFrame _viewOrCopy(
+          List<String> columnNames, DataMatrix data, bool asView) =>
+      asView
+          ? DataFrame._default(columnNames, data)
+          : _copied(columnNames, data);
 
   // **************** manipulation ******************
 
   /// Add a new column to the end of the dataframe. The [records] have to be of the same length
   /// as the dataframe.
   void addColumn(String name, RecordCol records) {
-    if (_columnNames.contains(name)) {
+    if (_trackedColumnNames.contains(name)) {
       throw ArgumentError('$name column does already exist');
     }
 
@@ -276,13 +320,13 @@ class DataFrame extends ListBase<RecordRow> {
           'Length of column records does not match the one of the data frame');
     }
 
-    _columnNames.add(name);
+    _trackedColumnNames.add(name);
   }
 
-  /// Remove a column from the dataframe.
+  /// Remove a column from the dataframe and return it.
   RecordCol removeColumn(String name) {
     final index = columnIndex(name);
-    _columnNames.removeAt(index);
+    _trackedColumnNames.removeAt(index);
     return map((element) {
       element.removeAt(index);
     }).toList();
@@ -291,7 +335,7 @@ class DataFrame extends ListBase<RecordRow> {
   /// Transform the values corresponding to [name] as per [transformElement] in-place.
   void transformColumn(
       String name, dynamic Function(dynamic element) transformElement) {
-    this(name).forEachIndexed((i, element) {
+    columnAsIterable(name).forEachIndexed((i, element) {
       this[i][columnIndex(name)] = transformElement(element);
     });
   }
@@ -299,41 +343,33 @@ class DataFrame extends ListBase<RecordRow> {
   /// Add a new row represented by [rowMap] of the structure {columnName: record}
   /// to the end of the dataframe.
   void addRowFromMap(RecordRowMap rowMap) =>
-      add([for (final name in _columnNames) rowMap[name]]);
+      add([for (final name in _trackedColumnNames) rowMap[name]]);
+
+  /// Row-slice instance in-place.
+  void slice({int start = 0, int? end}) {
+    if (start != 0) removeRange(0, start);
+    if (end != null) removeRange(end, length);
+  }
 
   // ************ map representations *************
 
   /// Returns a list of {columnName: value} Map-representations for each row.
   List<RecordRowMap> rowMaps() =>
-      [for (final row in this) Map.fromIterables(_columnNames, row)];
+      [for (final row in this) Map.fromIterables(_trackedColumnNames, row)];
 
   /// Returns a {columnName: columnData} representation.
   Map<String, RecordCol> columnMap() => Map.fromIterable(
-        _columnNames,
+        _trackedColumnNames,
         value: (name) => this(name),
       );
 
   // ************ copying *************
 
-  /// Returns a deep copy of the dataframe.
-  DataFrame copy() => DataFrame._copied(_columnNames, this);
+  /// Returns a copy of the instance.
+  DataFrame copy() => _copied(columnNames, this);
 
-  DataFrame._copied(
-      ElementPositionTrackingList<String> columns, DataMatrix data)
-      : this._columnNames = columns.copy(),
-        super(ListListExtensions(data).copy());
-
-  // ************** slicing ****************
-
-  /// Returns a new, row-sliced dataframe.
-  DataFrame sliced(int start, [int? end]) =>
-      DataFrame._copied(_columnNames, sublist(start, end));
-
-  /// Slice dataframe in-place.
-  void slice(int start, [int? end]) {
-    if (start != 0) removeRange(0, start);
-    if (end != null) removeRange(end, length);
-  }
+  DataFrame _copied(List<String> names, DataMatrix data) =>
+      DataFrame._default(names.copy(), data.copy());
 
   // **************** sorting ****************
 
@@ -350,8 +386,8 @@ class DataFrame extends ListBase<RecordRow> {
           {bool ascending = true,
           bool nullsFirst = true,
           Comparator<Record>? compareRecords}) =>
-      DataFrame._copied(
-        _columnNames,
+      _copied(
+        _trackedColumnNames,
         _sort(colName,
             inPlace: false,
             ascending: ascending,
@@ -406,9 +442,9 @@ class DataFrame extends ListBase<RecordRow> {
 
   // ************* Object overrides ******************
 
-  /// Returns hashCode accounting for both the [_data] and [_columnNames]
+  /// Returns hashCode accounting for both the data and [_trackedColumnNames]
   @override
-  int get hashCode => l.hashCode + _columnNames.hashCode;
+  int get hashCode => l.hashCode + _trackedColumnNames.hashCode;
 
   @override
   bool operator ==(Object other) =>

@@ -25,6 +25,7 @@ pre-publish:
 patch-version:
 	dart pub global activate pubversion
 	pubversion patch
+	dart pub get
 
 publish:
 	dart pub publish
