@@ -277,7 +277,7 @@ void main() {
         '    a   b    c   \n'
         '0 | 43  omg  null\n'
         '1 | -32 noob -0.7');
-    expect(df.rowsWhere((df('a') < 0) | df<String>('b').maskFrom((el) => el.length > 0)).toString(),
+    expect(df.rowsWhere(df('a').st(0) | df<String>('b').getMask((el) => el.length > 0)).toString(),
         '    a   b          c    \n'
         '0 | 43  omg        null \n'
         '1 | -9  ubiquitous 101.8\n'

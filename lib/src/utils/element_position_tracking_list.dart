@@ -3,14 +3,14 @@ import 'extensions/list.dart';
 
 /// List keeping track of element indices by storing them
 /// in a map and updating them upon list mutation
-class ElementPositionTrackingList<T> extends ListBase<T> {
-  Map<T, int> _object2Index;
+class ElementPositionTrackingList<E> extends ListBase<E> {
+  Map<E, int> _object2Index;
 
-  ElementPositionTrackingList(List<T> elements)
+  ElementPositionTrackingList(List<E> elements)
       : _object2Index = elements.asInvertedMap(),
         super(elements);
 
-  ElementPositionTrackingList<T> copy() =>
+  ElementPositionTrackingList<E> copy() =>
       ElementPositionTrackingList(ListExtensions(this).copy());
 
   // *************** overrides *******************
@@ -20,24 +20,25 @@ class ElementPositionTrackingList<T> extends ListBase<T> {
       _object2Index.containsKey(element);
 
   @override
-  void add(T element) {
+  void add(E element) {
     super.add(element);
     _object2Index[element] = length - 1;
   }
 
   @override
-  void addAll(Iterable<T> iterable) {
+  void addAll(Iterable<E> iterable) {
     super.addAll(iterable);
     _object2Index = asInvertedMap();
   }
 
   @override
-  T removeAt(int index) {
+  E removeAt(int index) {
     final removedElement = super.removeAt(index);
     _object2Index = asInvertedMap();
     return removedElement;
   }
 
   @override
-  int indexOf(Object? element, [int? start]) => _object2Index[element]!;
+  int indexOf(Object? element, [int? start]) =>
+      _object2Index[element]!;
 }
