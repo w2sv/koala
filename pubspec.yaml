@@ -9,7 +9,7 @@ environment:
 dependencies:
   collection: ^1.16.0
   csv: ^5.0.1
-  jiffy: ^5.0.0
+  jiffy: ^6.0.0
 
 dev_dependencies:
   coverage: ^1.6.0
