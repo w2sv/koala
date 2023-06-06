@@ -30,3 +30,7 @@ Add `toCsv` method. Improve method documentation. Remove the rather pointless `s
 - Add `head` method
 - Make the `start` and `end` parameters of `slice` and `sliced` keyword parameters
 - Add `asView` parameter to non-constructor methods returning a `DataFrame`, to allow for determining whether a view of the current data, or a copy of it should be returned
+
+# 0.1.2
+
+- Update jiffy as well as the dart sdk version range 
