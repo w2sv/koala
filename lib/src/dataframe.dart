@@ -174,7 +174,7 @@ class DataFrame extends ListBase<RecordRow> {
           df.transformColumn(
               name,
               (element) => element != null
-                  ? Jiffy(element, datePattern).dateTime
+                  ? Jiffy.parse(element, pattern: datePattern).dateTime
                   : null);
         } catch (_) {}
       }
