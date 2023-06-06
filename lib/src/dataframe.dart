@@ -224,10 +224,10 @@ class DataFrame extends ListBase<RecordRow> {
 
   List<String> get columnNames => _trackedColumnNames.l;
 
-  /// Returns an unmodifiable list of nRows, nColumns
+  /// Returns an unmodifiable list of nRows, nColumns.
   List<int> get shape => List.unmodifiable([length, nColumns]);
 
-  /// Accesses column index in O(1)
+  /// Accesses column index in O(1).
   int columnIndex(String colName) {
     try {
       return _trackedColumnNames.indexOf(colName);
@@ -249,7 +249,7 @@ class DataFrame extends ListBase<RecordRow> {
   Iterable<T> columnAsIterable<T>(String colName, {int start = 0, int? end}) =>
       sublist(start, end).map((row) => row[columnIndex(colName)]).cast<T>();
 
-  /// Returns an iterable over the columns.
+  /// Returns an iterable over all columns.
   Iterable<Column> columns() => _trackedColumnNames.map(call);
 
   /// Grab a (typed) record sitting at dataframe[rowIndex][colName].
