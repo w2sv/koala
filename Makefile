@@ -23,10 +23,13 @@ pre-publish:
 	@dart pub publish --dry-run
 
 patch-version:
-	dart pub global activate pubversion
-	pubversion patch
-	dart pub get
+	@dart pub global activate pubversion
+	@pubversion patch
+	@dart pub get
+
+VERSION := $(shell grep 'version:' pubspec.yaml | awk '{print $$2}')
 
 publish:
-	dart pub publish
-	gh release create
+	@dart pub publish
+	@git add .; git commit -m "$(VERSION)"; git push
+	@gh release create $(VERSION) --generate-notes
