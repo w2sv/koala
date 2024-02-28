@@ -47,8 +47,8 @@ class DataFrame extends ListBase<RecordRow> {
   }
 
   /// Builds a dataframe from a list of [rowMaps], e.g.
-  /// [{'col1': 420, 'col2': 69},
-  ///  {'col1': 666, 'col2': 1470}]
+  /// \[{'col1': 420, 'col2': 69},
+  ///  {'col1': 666, 'col2': 1470}\].
   DataFrame.fromRowMaps(List<RecordRowMap> rowMaps)
       : this._default(rowMaps.first.keys.toList(),
             rowMaps.map((e) => e.values.toList()).toList());

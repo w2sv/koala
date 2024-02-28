@@ -11,8 +11,8 @@ run-tests:
 	@dart pub global run coverage:format_coverage --packages=.dart_tool/package_config.json --report-on=lib --lcov -o ./coverage/lcov.info -i ./coverage
 
 coverage-html:
-	genhtml coverage/lcov.info -o coverage/html
-	open coverage/html/index.html
+	@genhtml coverage/lcov.info -o coverage/html
+	@open coverage/html/index.html
 
 # $$$$$$$$$ Publishing $$$$$$$$$$
 

@@ -34,3 +34,7 @@ Add `toCsv` method. Improve method documentation. Remove the rather pointless `s
 # 0.1.2
 
 - Update jiffy as well as the dart sdk version range 
+
+# 0.1.3
+
+- Update dart sdk to >=2.13.0 <=3.3.0, csv to 6.0.0
