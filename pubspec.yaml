@@ -1,10 +1,10 @@
 name: koala
 description: A poor man's version of a pandas Dataframe. Collect, access & manipulate related data.
 repository: https://github.com/w2sv/koala
-version: 0.1.5
+version: 0.1.6
 
 environment:
-  sdk: '>=2.13.0 <=3.3.3'
+  sdk: '>=2.13.0 <4.0.0'
 
 dependencies:
   collection: ^1.16.0

@@ -44,4 +44,9 @@ Add `toCsv` method. Improve method documentation. Remove the rather pointless `s
 - Update dart sdk to >=2.13.0 <=3.3.1
 
 # 0.1.5
+
 - Update dart sdk to >=2.13.0 <=3.3.3
+
+# 0.1.6
+
+- Update dart sdk to >=2.13.0 <4.0.0
