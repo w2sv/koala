@@ -23,7 +23,7 @@ pre-publish:
 	@dart pub publish --dry-run
 
 patch-version:
-	@dart pub global activate pubversion
+	@dart pub global activate pub_version_plus
 	@pubversion patch
 	@dart pub get
 
