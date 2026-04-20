@@ -67,31 +67,32 @@ class DataFrame extends ListBase<RecordRow> {
   /// Pass either a csv file [path] or a [rowStream], which you may process
   /// beforehand in some way.
   ///
-  /// [fieldDelimiter], [textDelimiter] & [eolToken] will be
-  /// passed to the employed [CsvToListConverter].
+  /// [fieldDelimiter] and [textDelimiter] are forwarded to the underlying
+  /// CSV decoder. Line endings are detected automatically; [eolToken]
+  /// is kept for backwards compatibility but is not used during parsing.
   ///
   /// If [containsHeader] is set to true (default), the first row of the
-  /// converted csv data will be used as column names. Otherwise,
-  /// the [columnNames] are to be passed.
+  /// parsed csv data will be used as column names. Otherwise,
+  /// [columnNames] must be provided.
   ///
-  /// Passing [parseAsNull] leads to the specified value being replaced by null.
+  /// Passing [parseAsNull] leads to the specified values being replaced by null.
   ///
   /// Upon [skipColumns] being specified, the corresponding columns will not be
-  /// added to the data frame. Likewise, only [maxRows] rows of csv data, excluding
-  /// the eventually included header row, will be read in if specified.
+  /// added to the data frame. Likewise, only [maxRows] rows of csv data,
+  /// excluding the optionally included header row, will be read if specified.
   ///
-  /// [convertNumeric] leads to double and int values automatically being
-  /// respectively converted. [convertDates] leads to attempting a DateFormat conversion
-  /// for each column. This conversion may additionally be parametrized with [datePattern].
-  /// A datetime looking like '13.08.2022' could be parsed by setting the [datePattern] to
-  /// 'dd.MM.yyyy', for instance.
+  /// [convertNumeric] enables automatic parsing of numeric values by the CSV
+  /// decoder. [convertDates] attempts to parse values of each column as dates.
+  /// This conversion may be parametrized via [datePattern].
+  /// A datetime like '13.08.2022' could be parsed with 'dd.MM.yyyy'.
   static Future<DataFrame> fromCsv(
       {String? path,
       Stream<List<int>>? rowStream,
-      Codec decoding = utf8,
-      String fieldDelimiter = defaultFieldDelimiter,
-      String? textDelimiter = defaultTextDelimiter,
-      String eolToken = defaultEol,
+      Encoding decoding = utf8,
+      String fieldDelimiter = ',',
+      String textDelimiter = '"',
+      @Deprecated('No longer used; csv v8 auto-detects line endings')
+      String eolToken = '\n',
       bool containsHeader = true,
       List<String>? columnNames,
       List<String>? skipColumns,
@@ -124,20 +125,20 @@ class DataFrame extends ListBase<RecordRow> {
     }
 
     var csvRowStream = rowStream!.transform(decoder).transform(
-        CsvToListConverter(
+          CsvDecoder(
             fieldDelimiter: fieldDelimiter,
-            textDelimiter: textDelimiter,
-            textEndDelimiter: textDelimiter,
-            eol: eolToken,
-            shouldParseNumbers: convertNumeric,
-            allowInvalid: false));
+            quoteCharacter: textDelimiter,
+            dynamicTyping: convertNumeric,
+          ),
+        );
 
     // take only {maxRows} rows if passed
     if (maxRows != null) {
       csvRowStream = csvRowStream.take(maxRows + (containsHeader ? 1 : 0));
     }
 
-    final fields = await csvRowStream.toList();
+    final fields =
+        await csvRowStream.map((row) => row.cast<Record>().toList()).toList();
 
     // if no columnNames passed, get them from fields
     if (columnNames == null) {
@@ -154,7 +155,7 @@ class DataFrame extends ListBase<RecordRow> {
 
     // convert records present in [parseAsNull] to null if required;
     //
-    // NOTE: this should really be done by the CsvToListConverter, however there's no
+    // NOTE: this should really be done by the Csv decoder, however there's no
     // respective parameter to do so. Iterating twice over the entirety of the data
     // introduces a ton of overhead
     if (parseAsNull.isNotEmpty) {
@@ -187,18 +188,19 @@ class DataFrame extends ListBase<RecordRow> {
   ///
   /// Set [includeHeader] to false to only include the data in the csv.
   /// Null values will be saved as [nullRepresentation].
-  /// [fieldDelimiter], [textDelimiter] & [eolToken] will be forwarded to the invoked [ListToCsvConverter].
+  /// [fieldDelimiter], [textDelimiter] and [eolToken] are forwarded to the
+  /// underlying CSV encoder.
   /// The [encoding] specifies the encoding of the saved file.
   Future<void> toCsv(String path,
       {bool includeHeader = true,
       String? nullRepresentation = null,
-      String fieldDelimiter = defaultFieldDelimiter,
-      String textDelimiter = '',
-      String eolToken = defaultEol,
+      String fieldDelimiter = ',',
+      String textDelimiter = '"',
+      String eolToken = '\n',
       Encoding encoding = utf8}) {
     DataMatrix fields = this;
 
-    // NOTE: this should be done by the ListToCsvConverter
+    // NOTE: this should be done by the Csv encoder
     if (nullRepresentation != null) {
       fields = fields
           .map((row) =>
@@ -206,14 +208,14 @@ class DataFrame extends ListBase<RecordRow> {
           .toFixedLengthList();
     }
 
+    final rows = includeHeader ? <List<Record>>[columnNames] + fields : fields;
+
     return File(path).writeAsString(
-        ListToCsvConverter().convert(
-            includeHeader ? <List<Record>>[columnNames] + fields : fields,
-            fieldDelimiter: fieldDelimiter,
-            textDelimiter: textDelimiter,
-            textEndDelimiter: textDelimiter,
-            eol: eolToken,
-            delimitAllFields: true),
+        CsvEncoder(
+          fieldDelimiter: fieldDelimiter,
+          lineDelimiter: eolToken,
+          quoteCharacter: textDelimiter,
+        ).convert(rows),
         encoding: encoding);
   }
 
