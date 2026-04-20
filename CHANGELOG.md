@@ -50,3 +50,10 @@ Add `toCsv` method. Improve method documentation. Remove the rather pointless `s
 # 0.1.6
 
 - Update dart sdk to >=2.13.0 <4.0.0
+
+# 0.1.7
+
+- update csv to 8.0.0
+- note: DataFrame.fromCsv no longer uses the `eolToken` parameter during decoding
+- note: generated CSV quoting/formatting may differ slightly from previous releases, while round-trip behavior is preserved
+- improve compatibility with the newer stream-based CSV decoder

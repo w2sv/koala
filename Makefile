@@ -31,5 +31,4 @@ VERSION := $(shell grep 'version:' pubspec.yaml | awk '{print $$2}')
 
 publish:
 	@dart pub publish
-	@git add .; git commit -m "$(VERSION)"; git push
 	@gh release create $(VERSION) --generate-notes
