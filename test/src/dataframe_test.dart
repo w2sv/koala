@@ -374,7 +374,7 @@ void main() {
         [12, 'asdf', 33.53],
         [65, 'dsafa', 89]
       ]);
-      df.toCsv(outputCsvPath);
+      await df.toCsv(outputCsvPath);
       expect(await DataFrame.fromCsv(path: outputCsvPath), df);
 
       File(outputCsvPath).delete();
@@ -397,12 +397,12 @@ void main() {
       File(outputCsvPath).delete();
     });
 
-    // test('with double quote including strings', () async {
-    //   final outputCsvPath = _outputFilePath('out1.csv');
-    //   final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, "as'df", 33.53], [65, 'dsafa', 89]]);
-    //   df.toCsv(outputCsvPath);
-    //   expect(await DataFrame.fromCsv(path: outputCsvPath), df);
-    // });
+    test('with double quote including strings', () async {
+      final outputCsvPath = outputFilePath('out1.csv');
+      final df = DataFrame.fromNamesAndData(['a', 'b', 'c'], [[12, "as'df", 33.53], [65, 'dsafa', 89]]);
+      df.toCsv(outputCsvPath);
+      expect(await DataFrame.fromCsv(path: outputCsvPath), df);
+    });
 
     test('with single quote including strings', () async {
       final outputCsvPath = outputFilePath('out3.csv');
@@ -414,7 +414,7 @@ void main() {
         [12, "as''df", 33.53],
         [65, "ds'afa", 89]
       ]);
-      df.toCsv(outputCsvPath);
+      await df.toCsv(outputCsvPath);
       expect(await DataFrame.fromCsv(path: outputCsvPath), df);
 
       File(outputCsvPath).delete();
@@ -430,7 +430,7 @@ void main() {
         [12, "asdf", 33.53],
         [65, "dsafa", 89]
       ]);
-      df.toCsv(outputCsvPath, includeHeader: false);
+      await df.toCsv(outputCsvPath, includeHeader: false);
 
       final lines = await File(outputCsvPath).readAsLines();
       expect(lines.length, 2);
